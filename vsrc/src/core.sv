@@ -14,6 +14,37 @@ module core import common::*;(
 	input  logic       trint, swint, exint
 );
 	/* TODO: Add your CPU-Core here. */
+	u64 pc, pcp4;
+	always_ff @( posedge clk ) 
+	begin
+		if(reset) 
+		begin
+			pc <= 64'h8000_0000;
+		end
+		else 
+		begin
+			pc <= pc_nxt;
+		end
+	end
+
+	assign ireq.valid = 1'b1;
+	assign ireq.addr = pc;
+
+	u32 instr;
+	assign instr = iresp.data;
+
+	fetch_data_t dataF;
+
+	fetch fetch (
+		.dataF(dataF),
+		.raw_instr(raw_instr)
+	);
+	
+	pcupdate pcupdate (
+		.pcp4(pc + 4),
+		.pc_out(pc_nxt)
+	);
+
 
 `ifdef VERILATOR
 	DifftestInstrCommit DifftestInstrCommit(
