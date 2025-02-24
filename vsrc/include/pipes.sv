@@ -46,11 +46,12 @@ typedef struct packed {
 	decode_op_t op;
 	alufunc_t alufunc;
 	u1 regwrite;
-	
+	u1 alusrc;
+	u1 aluext;
 } control_t;
 
 typedef struct packed {
-	word_t srca, srcb;
+	word_t srca, srcb, imm;
 	control_t ctl;
 	creg_addr_t dst;
 } decode_data_t;
@@ -60,6 +61,12 @@ typedef struct packed {
 	control_t ctl;
 	creg_addr_t dst;
 } execute_data_t;
+
+typedef struct packed {
+	word_t writedata;
+	control_t ctl;
+	creg_addr_t dst;
+} writeback_data_t;
 
 endpackage
 

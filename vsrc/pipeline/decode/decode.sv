@@ -5,6 +5,7 @@
 `include "include/common.sv"
 `include "include/pipes.sv"
 `include "pipeline/decode/decoder.sv"
+`include "pipeline/regfile/regfile.sv"
 `else
 
 `endif
@@ -12,29 +13,46 @@
 module decode
     import common::*;
     import pipes::*;(
+    input clk, reset,
     input fetch_data_t dataF,
     output decode_data_t dataD,
-    
-    output creg_addr_t ra1, ra2, wa,
-    input word_t rd1, rd2, wd
+    input u1 wen,
+    input creg_addr_t wa,
+    input word_t wd
 );
 
+    creg_addr_t ra1, ra2, rdst;
     control_t ctl;
+    word_t rd1, rd2, imm;
 
     decoder decoder (
         .raw_instr(dataF.raw_instr),
         .ctl,
         .ra1,
         .ra2,
-        .wa
+        .rdst,
+        .imm
     );
+	
+	regfile regfile(
+		.clk, .reset,
+		.ra1,
+		.ra2,
+		.rd1,
+		.rd2,
+		.wen,
+		.wa,
+		.wd
+	);
+
 
 
     assign dataD.ctl = ctl;
-    assign dataD.dst = dataF.raw_instr[11:7];
+    assign dataD.dst = rdst;
 
     assign dataD.srca = rd1;
     assign dataD.srcb = rd2;
+    assign dataD.imm = imm;
     
 endmodule
 

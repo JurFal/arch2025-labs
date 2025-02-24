@@ -4,6 +4,7 @@
 `ifdef VERILATOR
 `include "include/common.sv"
 `include "include/pipes.sv"
+`include "pipeline/decode/signext12.sv"
 `else
 
 `endif
@@ -13,25 +14,29 @@ module decoder
     import pipes::*;(
     input u32 raw_instr,
     output control_t ctl,
-    output creg_addr_t ra1, ra2, wa,
-    output u64 imm
+    output creg_addr_t ra1, ra2, rdst,
+    output word_t imm
 );
 
     wire [6:0] op = raw_instr[6:0];
     wire [2:0] f3 = raw_instr[14:12];
     wire [6:0] f7 = raw_instr[31:25];
 
+    u12 imm12;
+
     always_comb begin
         ctl = '0;
         ra1 = '0;
         ra2 = '0;
-        wa = '0;
+        rdst = '0;
+        imm12 = '0;
         unique case (op)
             OP_R_ALL32: begin
                 ctl.regwrite = 1'b1;
+                ctl.alusrc = 1'b0;
                 ra1 = raw_instr[19:15];
                 ra2 = raw_instr[24:20];
-                wa = raw_instr[11:7];
+                rdst = raw_instr[11:7];
                 unique case (f3)
                     F3_ADD: begin
                         if (f7 == 7'b0000000) begin
@@ -67,9 +72,11 @@ module decoder
             end
             OP_R_ALL64: begin
                 ctl.regwrite = 1'b1;
+                ctl.alusrc = 1'b0;
+                ctl.aluext = 1'b1;
                 ra1 = raw_instr[19:15];
                 ra2 = raw_instr[24:20];
-                wa = raw_instr[11:7];
+                rdst = raw_instr[11:7];
                 unique case (f3)
                     F3_ADD: begin
                         if (f7 == 7'b0000000) begin
@@ -93,8 +100,10 @@ module decoder
             end
             OP_I_MAT32: begin
                 ctl.regwrite = 1'b1;
+                ctl.alusrc = 1'b1;
                 ra1 = raw_instr[19:15];
-                wa = raw_instr[11:7];
+                rdst = raw_instr[11:7];
+                imm12 = raw_instr[31:20];
                 unique case (f3)
                     F3_ADD: begin
                         ctl.op = ADDI;
@@ -120,9 +129,11 @@ module decoder
             end
             OP_I_MAT64: begin
                 ctl.regwrite = 1'b1;
+                ctl.alusrc = 1'b1;
+                ctl.aluext = 1'b1;
                 ra1 = raw_instr[19:15];
-                ra2 = '0;
-                wa = raw_instr[11:7];
+                rdst = raw_instr[11:7];
+                imm12 = raw_instr[31:20];
                 unique case (f3)
                     F3_ADD: begin
                         ctl.op = ADDIW;
@@ -135,12 +146,16 @@ module decoder
                 endcase
             end
             default: begin
-
+                
             end
         endcase
         
     end
 
+    signext12 signext12 (
+        .imm12,
+        .imm
+    );
     
 endmodule
 

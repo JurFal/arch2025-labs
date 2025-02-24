@@ -3,10 +3,11 @@
 `ifdef VERILATOR
 `include "include/common.sv"
 `include "include/pipes.sv"
-`include "pipeline/regfile/regfile.sv"
 `include "pipeline/fetch/fetch.sv"
 `include "pipeline/fetch/pcselect.sv"
 `include "pipeline/decode/decode.sv"
+`include "pipeline/execute/execute.sv"
+`include "pipeline/writeback/writeback.sv"
 
 `else
 
@@ -50,6 +51,8 @@ module core
 
 	fetch_data_t dataF, dataF_nxt;
 	decode_data_t dataD, dataD_nxt;
+	execute_data_t dataE, dataE_nxt;
+	writeback_data_t dataW, dataW_nxt;
 
 	u1 flushF;
 
@@ -87,24 +90,49 @@ module core
 
 	creg_addr_t ra1, ra2, wa;
 	word_t rd1, rd2, wd;
+	logic wen;
 
 	decode decode (
+		.clk, .reset,
 		.dataF,
 		.dataD(dataD_nxt),
-
-		.ra1, .ra2, .wa, .rd1, .rd2, .wd
+		.wa(dataW.dst),
+		.wen(dataW.ctl.regwrite),
+		.wd(dataW.writedata)
 	);
 
-	
-	regfile regfile(
-		.clk, .reset,
-		.ra1,
-		.ra2,
-		.rd1,
-		.rd2,
-		.wen(dataD.ctl.regwrite),
-		.wa,
-		.wd
+	u1 flushE;
+
+	assign flushE = ireq.valid & ~iresp.data_ok;
+
+	always_ff @(posedge clk) begin
+		if (flushE) begin
+			dataE <= '0;
+		end else begin
+			dataE <= dataE_nxt;
+		end
+	end
+
+	execute execute (
+		.dataD,
+		.dataE(dataE_nxt)
+	);
+
+	u1 flushW;
+
+	assign flushW = ireq.valid & ~iresp.data_ok;
+
+	always_ff @(posedge clk) begin
+		if (flushW) begin
+			dataW <= '0;
+		end else begin
+			dataW <= dataW_nxt;
+		end
+	end
+
+	writeback writeback(
+		.dataE,
+		.dataW(dataW_nxt)
 	);
 
 endmodule
