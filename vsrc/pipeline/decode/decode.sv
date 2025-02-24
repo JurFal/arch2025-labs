@@ -15,16 +15,20 @@ module decode
     input fetch_data_t dataF,
     output decode_data_t dataD,
     
-    output creg_addr_t ra1, ra2,
-    input word_t rd1, rd2
+    output creg_addr_t ra1, ra2, wa,
+    input word_t rd1, rd2, wd
 );
 
     control_t ctl;
 
     decoder decoder (
         .raw_instr(dataF.raw_instr),
-        .ctl(ctl)
+        .ctl,
+        .ra1,
+        .ra2,
+        .wa
     );
+
 
     assign dataD.ctl = ctl;
     assign dataD.dst = dataF.raw_instr[11:7];

@@ -20,6 +20,4 @@ module fetch
 
 endmodule
 
-
-
 `endif

@@ -1,5 +1,5 @@
-`ifndef __PCUPDATE_SV
-`define __PCUPDATE_SV
+`ifndef __PCSELECT_SV
+`define __PCSELECT_SV
 
 `ifdef VERILATOR
 `include "include/common.sv"
@@ -8,7 +8,7 @@
 
 `endif 
 
-module pcupdate 
+module pcselect 
     import common::*;
     import pipes::*;(
 

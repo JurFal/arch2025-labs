@@ -10,12 +10,17 @@ package pipes;
 /* Define instrucion decoding rules here */
 
 // parameter F7_RI = 7'bxxxxxxx;
-parameter F7_R_ALL32 = 7'b0110011;
-parameter F7_R_ALL64 = 7'b0111011;
-parameter F7_I_MAT32 = 7'b0010011;
-parameter F7_I_MAT64 = 7'b0011011;
+parameter OP_R_ALL32 = 7'b0110011;
+parameter OP_R_ALL64 = 7'b0111011;
+parameter OP_I_MAT32 = 7'b0010011;
+parameter OP_I_MAT64 = 7'b0011011;
 
 parameter F3_ADD = 3'b000;
+parameter F3_XOR = 3'b100;
+parameter F3_OR  = 3'b110;
+parameter F3_AND = 3'b111;
+
+
     
 /* Define pipeline structures here */
 
@@ -28,11 +33,13 @@ typedef struct packed {
 } reg_data_t;
 
 typedef enum logic [5:0] { 
-	UNKNOWN, ADDI
+	UNKNOWN, ADDI, XORI, ORI, ANDI,
+	ADD, SUB, AND, OR, XOR,
+	ADDIW, ADDW, SUBW
 } decode_op_t; 
 
 typedef enum logic [4:0] {
-	ALU_ADD
+	ALU_ADD, ALU_XOR, ALU_OR, ALU_AND, ALU_SUB
 } alufunc_t;
 
 typedef struct packed {
@@ -45,8 +52,14 @@ typedef struct packed {
 typedef struct packed {
 	word_t srca, srcb;
 	control_t ctl;
-	creg_addr_t dst; 
+	creg_addr_t dst;
 } decode_data_t;
+
+typedef struct packed {
+	word_t aluout, wd, pcbranch;
+	control_t ctl;
+	creg_addr_t dst;
+} execute_data_t;
 
 endpackage
 
