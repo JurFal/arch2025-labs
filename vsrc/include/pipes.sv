@@ -51,18 +51,21 @@ typedef struct packed {
 } control_t;
 
 typedef struct packed {
+	u32 raw_instr;
 	word_t srca, srcb, imm;
 	control_t ctl;
 	creg_addr_t dst;
 } decode_data_t;
 
 typedef struct packed {
+	u32 raw_instr;
 	word_t aluout, wd, pcbranch;
 	control_t ctl;
 	creg_addr_t dst;
 } execute_data_t;
 
 typedef struct packed {
+	u32 raw_instr;
 	word_t writedata;
 	control_t ctl;
 	creg_addr_t dst;

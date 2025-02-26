@@ -18,6 +18,8 @@ module execute
     output execute_data_t dataE
 );
 
+    assign dataE.raw_instr = dataD.raw_instr;
+
     control_t ctl = dataD.ctl;
     word_t src1 = dataD.srca;
     word_t src2;

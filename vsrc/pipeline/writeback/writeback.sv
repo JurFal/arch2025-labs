@@ -16,6 +16,9 @@ module writeback
     output writeback_data_t dataW
 );
 
+
+    assign dataW.raw_instr = dataE.raw_instr;
+
     assign dataW.dst = dataE.dst;
     assign dataW.writedata = dataE.aluout;
     assign dataW.ctl = dataE.ctl;

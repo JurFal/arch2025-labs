@@ -41,10 +41,6 @@ module core
 		
 	end
 
-
-	assign ireq.valid = 1'b1;
-	assign ireq.addr = pc;
-
 	u32 raw_instr;
 
 	assign raw_instr = iresp.data;
@@ -135,6 +131,10 @@ module core
 		.dataE,
 		.dataW(dataW_nxt)
 	);
+
+	
+	assign ireq.valid = 1'b0;
+	assign ireq.addr = pc;
 
 /* TODO: Add your CPU-Core here. */
 
