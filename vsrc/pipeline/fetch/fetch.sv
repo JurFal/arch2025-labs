@@ -16,6 +16,7 @@ module fetch
     input u32 raw_instr
 );
 
+    assign dataF.valid = '1;
     assign dataF.raw_instr = raw_instr;
 
 endmodule

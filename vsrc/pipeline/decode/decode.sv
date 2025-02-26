@@ -21,8 +21,6 @@ module decode
     input word_t wd
 );
 
-    assign dataD.raw_instr = dataF.raw_instr;
-
     creg_addr_t ra1, ra2, rdst;
     control_t ctl;
     word_t rd1, rd2, imm;
@@ -47,8 +45,7 @@ module decode
 		.wd
 	);
 
-
-
+    assign dataD.valid = '1;
     assign dataD.ctl = ctl;
     assign dataD.dst = rdst;
 
