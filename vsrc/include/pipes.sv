@@ -24,14 +24,6 @@ parameter F3_AND = 3'b111;
     
 /* Define pipeline structures here */
 
-typedef struct packed {
-	u32 raw_instr;
-} fetch_data_t;
-
-typedef struct packed {
-	u32 rd;
-} reg_data_t;
-
 typedef enum logic [5:0] { 
 	UNKNOWN, ADDI, XORI, ORI, ANDI,
 	ADD, SUB, AND, OR, XOR,
@@ -51,6 +43,16 @@ typedef struct packed {
 } control_t;
 
 typedef struct packed {
+	u32 rd;
+} reg_data_t;
+
+typedef struct packed {
+	u1 valid;
+	u32 raw_instr;
+} fetch_data_t;
+
+typedef struct packed {
+	u1 valid;
 	u32 raw_instr;
 	word_t srca, srcb, imm;
 	control_t ctl;
@@ -58,6 +60,7 @@ typedef struct packed {
 } decode_data_t;
 
 typedef struct packed {
+	u1 valid;
 	u32 raw_instr;
 	word_t aluout, wd, pcbranch;
 	control_t ctl;
@@ -65,6 +68,15 @@ typedef struct packed {
 } execute_data_t;
 
 typedef struct packed {
+	u1 valid;
+	u32 raw_instr;
+	word_t writedata;
+	control_t ctl;
+	creg_addr_t dst;
+} memory_data_t;
+
+typedef struct packed {
+	u1 valid;
 	u32 raw_instr;
 	word_t writedata;
 	control_t ctl;
