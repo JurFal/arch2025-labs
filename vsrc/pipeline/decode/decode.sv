@@ -45,8 +45,7 @@ module decode
 		.wd
 	);
 
-
-
+    assign dataD.valid = '1;
     assign dataD.ctl = ctl;
     assign dataD.dst = rdst;
 

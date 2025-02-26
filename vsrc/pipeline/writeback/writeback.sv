@@ -12,13 +12,14 @@
 module writeback
     import common::*;
     import pipes::*;(
-    input execute_data_t dataE,
+    input memory_data_t dataM,
     output writeback_data_t dataW
 );
 
-    assign dataW.dst = dataE.dst;
-    assign dataW.writedata = dataE.aluout;
-    assign dataW.ctl = dataE.ctl;
+    assign dataW.valid = '1;
+    assign dataW.dst = dataM.dst;
+    assign dataW.writedata = dataM.writedata;
+    assign dataW.ctl = dataM.ctl;
 
 endmodule
 

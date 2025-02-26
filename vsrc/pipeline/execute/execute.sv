@@ -49,6 +49,7 @@ module execute
         .muxout(dataE.aluout)
     );
 
+    assign dataE.valid = '1;
     assign dataE.dst = dataD.dst;
     assign dataE.ctl = ctl;
 
