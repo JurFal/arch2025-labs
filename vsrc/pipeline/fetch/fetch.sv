@@ -13,11 +13,13 @@ module fetch
     import pipes::*;(
 
     output fetch_data_t dataF,
-    input u32 raw_instr
+    input u32 raw_instr,
+    input u64 pc
 );
 
     assign dataF.valid = '1;
     assign dataF.raw_instr = raw_instr;
+    assign dataF.pc = pc;
 
 endmodule
 
