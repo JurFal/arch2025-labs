@@ -18,7 +18,8 @@ module decode
     output decode_data_t dataD,
     input u1 wen,
     input creg_addr_t wa,
-    input word_t wd
+    input word_t wd,
+    output u64 next_reg[31:0]
 );
 
     creg_addr_t ra1, ra2, rdst;
@@ -42,10 +43,13 @@ module decode
 		.rd2,
 		.wen,
 		.wa,
-		.wd
+		.wd,
+        .next_reg
 	);
 
     assign dataD.valid = '1;
+    assign dataD.pc = dataF.pc;
+    assign dataD.raw_instr = dataF.raw_instr;
     assign dataD.ctl = ctl;
     assign dataD.dst = rdst;
 

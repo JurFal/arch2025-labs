@@ -50,6 +50,8 @@ module execute
     );
 
     assign dataE.valid = '1;
+    assign dataE.pc = dataD.pc;
+    assign dataE.raw_instr = dataD.raw_instr;
     assign dataE.dst = dataD.dst;
     assign dataE.ctl = ctl;
 

@@ -42,18 +42,17 @@ typedef struct packed {
 	u1 aluext;
 } control_t;
 
-typedef struct packed {
-	u32 rd;
-} reg_data_t;
 
 typedef struct packed {
 	u1 valid;
 	u32 raw_instr;
+	u64 pc;
 } fetch_data_t;
 
 typedef struct packed {
 	u1 valid;
 	u32 raw_instr;
+	u64 pc;
 	word_t srca, srcb, imm;
 	control_t ctl;
 	creg_addr_t dst;
@@ -62,6 +61,7 @@ typedef struct packed {
 typedef struct packed {
 	u1 valid;
 	u32 raw_instr;
+	u64 pc;
 	word_t aluout, wd, pcbranch;
 	control_t ctl;
 	creg_addr_t dst;
@@ -70,6 +70,7 @@ typedef struct packed {
 typedef struct packed {
 	u1 valid;
 	u32 raw_instr;
+	u64 pc;
 	word_t writedata;
 	control_t ctl;
 	creg_addr_t dst;
@@ -78,6 +79,7 @@ typedef struct packed {
 typedef struct packed {
 	u1 valid;
 	u32 raw_instr;
+	u64 pc;
 	word_t writedata;
 	control_t ctl;
 	creg_addr_t dst;

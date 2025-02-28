@@ -28,6 +28,8 @@ module core
 	/* TODO: Add your pipeline here. */	
 	u64 pc, pc_nxt;
 
+	u64 next_reg[31:0];
+
 	u1 stallpc;
 
 	assign stallpc = ireq.valid & ~iresp.data_ok;
@@ -40,22 +42,21 @@ module core
 		end else begin
 			pc <= pc_nxt;
 		end
-		
 	end
 
-
-	assign ireq.valid = dataW.valid;
-	assign ireq.addr = pc;
-
-	u32 raw_instr;
-
-	assign raw_instr = iresp.data;
 
 	fetch_data_t dataF, dataF_nxt;
 	decode_data_t dataD, dataD_nxt;
 	execute_data_t dataE, dataE_nxt;
 	memory_data_t dataM, dataM_nxt;
 	writeback_data_t dataW, dataW_nxt;
+
+	u32 raw_instr;
+
+	assign raw_instr = iresp.data;
+	assign ireq.valid = '1;
+	assign ireq.addr = pc;
+	assign dreq = '0;
 
 	u1 flushF;
 
@@ -64,14 +65,17 @@ module core
 	always_ff @(posedge clk) begin
 		if (reset | flushF) begin
 			dataF <= '0;
-		end else begin
+		end else if(iresp.data_ok) begin
 			dataF <= dataF_nxt;
+		end else begin
+			dataF <= dataF;
 		end
 	end
 
 	fetch fetch (
 		.dataF(dataF_nxt),
-		.raw_instr(raw_instr)
+		.raw_instr,
+		.pc
 	);
 	
 	pcselect pcselect (
@@ -81,7 +85,7 @@ module core
 
 	u1 flushD;
 
-	assign flushD = ireq.valid & ~iresp.data_ok;
+	assign flushD = ~dataF.valid;
 
 	always_ff @(posedge clk) begin
 		if (reset | flushD) begin
@@ -101,12 +105,13 @@ module core
 		.dataD(dataD_nxt),
 		.wa(dataW.dst),
 		.wen(dataW.ctl.regwrite),
-		.wd(dataW.writedata)
+		.wd(dataW.writedata),
+		.next_reg
 	);
 
 	u1 flushE;
 
-	assign flushE = ireq.valid & ~iresp.data_ok;
+	assign flushE = ~dataD.valid;
 
 	always_ff @(posedge clk) begin
 		if (reset | flushE) begin
@@ -123,7 +128,7 @@ module core
 
 	u1 flushM;
 
-	assign flushM = ireq.valid & ~iresp.data_ok;
+	assign flushM = ~dataE.valid;
 
 	always_ff @(posedge clk) begin
 		if (reset | flushM) begin
@@ -140,7 +145,7 @@ module core
 
 	u1 flushW;
 
-	assign flushW = ireq.valid & ~iresp.data_ok;
+	assign flushW = ~dataM.valid;
 
 	always_ff @(posedge clk) begin
 		if (reset | flushW) begin
@@ -162,52 +167,52 @@ module core
 		.clock              (clk),
 		.coreid             (0),
 		.index              (0),
-		.valid              (dataW_nxt.valid),
-		.pc                 (pc),
-		.instr              (raw_instr),
+		.valid              (dataW.valid),
+		.pc                 (dataW.pc),
+		.instr              (dataW.raw_instr),
 		.skip               (0),
 		.isRVC              (0),
 		.scFailed           (0),
-		.wen                (dataW_nxt.ctl.regwrite),
-		.wdest              ({3'b000, dataW_nxt.dst}),
-		.wdata              (dataW_nxt.writedata)
+		.wen                (dataW.ctl.regwrite),
+		.wdest              ({3'b000, dataW.dst}),
+		.wdata              (dataW.writedata)
 	);
 
 	DifftestArchIntRegState DifftestArchIntRegState (
 		.clock              (clk),
 		.coreid             (0),
-		.gpr_0              (regfile.next_reg[0]),
-		.gpr_1              (regfile.next_reg[1]),
-		.gpr_2              (regfile.next_reg[2]),
-		.gpr_3              (regfile.next_reg[3]),
-		.gpr_4              (regfile.next_reg[4]),
-		.gpr_5              (regfile.next_reg[5]),
-		.gpr_6              (regfile.next_reg[6]),
-		.gpr_7              (regfile.next_reg[7]),
-		.gpr_8              (regfile.next_reg[8]),
-		.gpr_9              (regfile.next_reg[9]),
-		.gpr_10             (regfile.next_reg[10]),
-		.gpr_11             (regfile.next_reg[11]),
-		.gpr_12             (regfile.next_reg[12]),
-		.gpr_13             (regfile.next_reg[13]),
-		.gpr_14             (regfile.next_reg[14]),
-		.gpr_15             (regfile.next_reg[15]),
-		.gpr_16             (regfile.next_reg[16]),
-		.gpr_17             (regfile.next_reg[17]),
-		.gpr_18             (regfile.next_reg[18]),
-		.gpr_19             (regfile.next_reg[19]),
-		.gpr_20             (regfile.next_reg[20]),
-		.gpr_21             (regfile.next_reg[21]),
-		.gpr_22             (regfile.next_reg[22]),
-		.gpr_23             (regfile.next_reg[23]),
-		.gpr_24             (regfile.next_reg[24]),
-		.gpr_25             (regfile.next_reg[25]),
-		.gpr_26             (regfile.next_reg[26]),
-		.gpr_27             (regfile.next_reg[27]),
-		.gpr_28             (regfile.next_reg[28]),
-		.gpr_29             (regfile.next_reg[29]),
-		.gpr_30             (regfile.next_reg[30]),
-		.gpr_31             (regfile.next_reg[31])
+		.gpr_0              (next_reg[0]),
+		.gpr_1              (next_reg[1]),
+		.gpr_2              (next_reg[2]),
+		.gpr_3              (next_reg[3]),
+		.gpr_4              (next_reg[4]),
+		.gpr_5              (next_reg[5]),
+		.gpr_6              (next_reg[6]),
+		.gpr_7              (next_reg[7]),
+		.gpr_8              (next_reg[8]),
+		.gpr_9              (next_reg[9]),
+		.gpr_10             (next_reg[10]),
+		.gpr_11             (next_reg[11]),
+		.gpr_12             (next_reg[12]),
+		.gpr_13             (next_reg[13]),
+		.gpr_14             (next_reg[14]),
+		.gpr_15             (next_reg[15]),
+		.gpr_16             (next_reg[16]),
+		.gpr_17             (next_reg[17]),
+		.gpr_18             (next_reg[18]),
+		.gpr_19             (next_reg[19]),
+		.gpr_20             (next_reg[20]),
+		.gpr_21             (next_reg[21]),
+		.gpr_22             (next_reg[22]),
+		.gpr_23             (next_reg[23]),
+		.gpr_24             (next_reg[24]),
+		.gpr_25             (next_reg[25]),
+		.gpr_26             (next_reg[26]),
+		.gpr_27             (next_reg[27]),
+		.gpr_28             (next_reg[28]),
+		.gpr_29             (next_reg[29]),
+		.gpr_30             (next_reg[30]),
+		.gpr_31             (next_reg[31])
 	);
 
     DifftestTrapEvent DifftestTrapEvent(

@@ -16,11 +16,11 @@ module regfile
     output word_t rd1, rd2,
     input logic wen,
     input creg_addr_t wa,
-    input word_t wd
+    input word_t wd,
+	output u64 next_reg[31:0]
 );
 
 u64 REG[31:0]; // 主寄存器
-u64 next_reg[31:0]; // “下一周期”的寄存器
 assign rd1 = REG[ra1]; // 读取依然从主寄存器中读取
 assign rd2 = REG[ra2];
 
