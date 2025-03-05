@@ -140,7 +140,9 @@ module core
 
 	memory memory(
 		.dataE,
-		.dataM(dataM_nxt)
+		.dataM(dataM_nxt),
+		.dreq,
+		.dresp
 	);
 
 	u1 flushW;

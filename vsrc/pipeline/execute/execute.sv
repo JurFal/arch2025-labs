@@ -54,6 +54,7 @@ module execute
     assign dataE.raw_instr = dataD.raw_instr;
     assign dataE.dst = dataD.dst;
     assign dataE.ctl = ctl;
+    assign dataE.memwd = dataD.srcb;
 
 endmodule
 
