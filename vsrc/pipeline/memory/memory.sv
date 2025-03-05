@@ -14,7 +14,9 @@ module memory
     import common::*;
     import pipes::*;(
     input execute_data_t dataE,
-    output memory_data_t dataM
+    output memory_data_t dataM,
+    output dbus_req_t dreq,
+    input dbus_resp_t dresp
 );
 
     assign dataM.valid = '1;

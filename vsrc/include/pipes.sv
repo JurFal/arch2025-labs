@@ -37,9 +37,7 @@ typedef enum logic [4:0] {
 typedef struct packed {
 	decode_op_t op;
 	alufunc_t alufunc;
-	u1 regwrite;
-	u1 alusrc;
-	u1 aluext;
+	u1 regwrite, alusrc, aluext, memwrite, memread;
 } control_t;
 
 
@@ -62,7 +60,7 @@ typedef struct packed {
 	u1 valid;
 	u32 raw_instr;
 	u64 pc;
-	word_t aluout, wd, pcbranch;
+	word_t aluout, pcbranch, memwd;
 	control_t ctl;
 	creg_addr_t dst;
 } execute_data_t;
