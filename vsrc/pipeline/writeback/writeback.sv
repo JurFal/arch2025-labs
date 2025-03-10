@@ -16,13 +16,19 @@ module writeback
     output writeback_data_t dataW
 );
 
-    assign dataW.valid = '1;
-    assign dataW.pc = dataM.pc;
-    assign dataW.raw_instr = dataM.raw_instr;
-    assign dataW.dst = dataM.dst;
-    assign dataW.writedata = dataM.writedata;
-    assign dataW.ctl = dataM.ctl;
-
+    always_comb begin
+        dataW.valid = '1;
+        dataW.pc = dataM.pc;
+        dataW.raw_instr = dataM.raw_instr;
+        dataW.dst = dataM.dst;
+        dataW.ctl = dataM.ctl;
+    end
+    muxword muxword_writedata (
+        .choose(dataM.ctl.memread),
+        .muxin0(dataM.aluout),
+        .muxin1(dataM.readdata),
+        .muxout(dataW.writedata)
+    );
 endmodule
 
 
