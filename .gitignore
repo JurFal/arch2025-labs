@@ -6,8 +6,4 @@ difftest/*
 *.out
 .gdb_history
 .vscode/
-<<<<<<< HEAD
 .DS_Store
-=======
-.DS_Store
->>>>>>> 65733a1 (ignore MACOS files)

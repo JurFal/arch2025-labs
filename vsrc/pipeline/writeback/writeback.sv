@@ -20,7 +20,7 @@ module writeback
     assign dataW.pc = dataM.pc;
     assign dataW.raw_instr = dataM.raw_instr;
     assign dataW.dst = dataM.dst;
-    assign dataW.writedata = (dataM.dst == '0) ? 0 : dataM.writedata;
+    assign dataW.writedata = dataM.writedata;
     assign dataW.ctl = dataM.ctl;
 
 endmodule

@@ -31,14 +31,13 @@ module decoder
         rdst = '0;
         imm12 = '0;
         unique case (op)
-            OP_R_ALL32: begin
+            OP_R_OPS: begin
                 ctl.regwrite = 1'b1;
-                ctl.alusrc = 1'b0;
                 ra1 = raw_instr[19:15];
                 ra2 = raw_instr[24:20];
                 rdst = raw_instr[11:7];
                 unique case (f3)
-                    F3_ADD: begin
+                    F3_OP_ADD: begin
                         if (f7 == 7'b0000000) begin
                             ctl.op = ADD;
                             ctl.alufunc = ALU_ADD;
@@ -52,15 +51,15 @@ module decoder
                             ctl.alufunc = ALU_ADD;
                         end
                     end
-                    F3_XOR: begin
+                    F3_OP_XOR: begin
                         ctl.op = XORI;
                         ctl.alufunc = ALU_XOR;
                     end
-                    F3_OR: begin
+                    F3_OP_ORR: begin
                         ctl.op = ORI;
                         ctl.alufunc = ALU_OR;
                     end
-                    F3_AND: begin
+                    F3_OP_AND: begin
                         ctl.op = ANDI;
                         ctl.alufunc = ALU_AND;
                     end
@@ -70,15 +69,14 @@ module decoder
                     end
                 endcase
             end
-            OP_R_ALL64: begin
+            OP_R_OPW: begin
                 ctl.regwrite = 1'b1;
-                ctl.alusrc = 1'b0;
                 ctl.aluext = 1'b1;
                 ra1 = raw_instr[19:15];
                 ra2 = raw_instr[24:20];
                 rdst = raw_instr[11:7];
                 unique case (f3)
-                    F3_ADD: begin
+                    F3_OP_ADD: begin
                         if (f7 == 7'b0000000) begin
                             ctl.op = ADDW;
                             ctl.alufunc = ALU_ADD;
@@ -98,26 +96,26 @@ module decoder
                     end
                 endcase
             end
-            OP_I_MAT32: begin
+            OP_I_OPS: begin
                 ctl.regwrite = 1'b1;
-                ctl.alusrc = 1'b1;
+                ctl.immsrc = 1'b1;
                 ra1 = raw_instr[19:15];
                 rdst = raw_instr[11:7];
                 imm12 = raw_instr[31:20];
                 unique case (f3)
-                    F3_ADD: begin
+                    F3_OP_ADD: begin
                         ctl.op = ADDI;
                         ctl.alufunc = ALU_ADD;
                     end
-                    F3_XOR: begin
+                    F3_OP_XOR: begin
                         ctl.op = XORI;
                         ctl.alufunc = ALU_XOR;
                     end
-                    F3_OR: begin
+                    F3_OP_ORR: begin
                         ctl.op = ORI;
                         ctl.alufunc = ALU_OR;
                     end
-                    F3_AND: begin
+                    F3_OP_AND: begin
                         ctl.op = ANDI;
                         ctl.alufunc = ALU_AND;
                     end
@@ -127,21 +125,95 @@ module decoder
                     end
                 endcase
             end
-            OP_I_MAT64: begin
+            OP_I_OPW: begin
                 ctl.regwrite = 1'b1;
-                ctl.alusrc = 1'b1;
+                ctl.immsrc = 1'b1;
                 ctl.aluext = 1'b1;
                 ra1 = raw_instr[19:15];
                 rdst = raw_instr[11:7];
                 imm12 = raw_instr[31:20];
                 unique case (f3)
-                    F3_ADD: begin
+                    F3_OP_ADD: begin
                         ctl.op = ADDIW;
                         ctl.alufunc = ALU_ADD;
                     end
                     default: begin
                         ctl.op = UNKNOWN;
                         ctl.alufunc = ALU_ADD;
+                    end
+                endcase
+            end
+            OP_I_LIM: begin
+                ctl.regwrite = 1'b1;
+                ctl.immsrc = 1'b1;
+                ctl.memread = 1'b1;
+                ctl.alufunc = ALU_ADD;
+                ra1 = raw_instr[19:15];
+                rdst = raw_instr[11:7];
+                imm12 = raw_instr[31:20];
+                unique case (f3)
+                    F3_MM_QWS: begin
+                        ctl.op = LB;
+                        ctl.memsize = MSIZE1;
+                    end
+                    F3_MM_HWS: begin
+                        ctl.op = LH;
+                        ctl.memsize = MSIZE2;
+                    end
+                    F3_MM_SWS: begin
+                        ctl.op = LW;
+                        ctl.memsize = MSIZE4;
+                    end
+                    F3_MM_DWS: begin
+                        ctl.op = LD;
+                        ctl.memsize = MSIZE8;
+                    end
+                    F3_MM_QWU: begin
+                        ctl.op = LBU;
+                        ctl.memsize = MSIZE1;
+                        ctl.zeroextwb = 1'b1;
+                    end
+                    F3_MM_HWU: begin
+                        ctl.op = LHU;
+                        ctl.memsize = MSIZE2;
+                        ctl.zeroextwb = 1'b1;
+                    end
+                    F3_MM_SWU: begin
+                        ctl.op = LWU;
+                        ctl.memsize = MSIZE4;
+                        ctl.zeroextwb = 1'b1;
+                    end
+                    default: begin
+                        ctl.op = UNKNOWN;
+                    end
+                endcase
+            end
+            OP_S_SIM: begin
+                ctl.immsrc = 1'b1;
+                ctl.memwrite = 1'b1;
+                ctl.alufunc = ALU_ADD;
+                ra1 = raw_instr[19:15];
+                ra2 = raw_instr[24:20];
+                imm12 = {raw_instr[31:25], raw_instr[11:7]};
+                unique case (f3)
+                    F3_MM_QWS: begin
+                        ctl.op = SB;
+                        ctl.memsize = MSIZE1;
+                    end
+                    F3_MM_HWS: begin
+                        ctl.op = SH;
+                        ctl.memsize = MSIZE2;
+                    end
+                    F3_MM_SWS: begin
+                        ctl.op = SW;
+                        ctl.memsize = MSIZE4;
+                    end
+                    F3_MM_DWS: begin
+                        ctl.op = SD;
+                        ctl.memsize = MSIZE8;
+                    end
+                    default: begin
+                        ctl.op = UNKNOWN;
                     end
                 endcase
             end

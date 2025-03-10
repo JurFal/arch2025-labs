@@ -24,7 +24,7 @@ module execute
     word_t aluout, aluoutw;
     
     muxword muxword_alusrcb (
-        .choose(ctl.alusrc),
+        .choose(ctl.immsrc),
         .muxin0(dataD.srcb),
         .muxin1(dataD.imm),
         .muxout(src2)
