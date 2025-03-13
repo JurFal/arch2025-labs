@@ -10,6 +10,7 @@
 `include "pipeline/memory/memory.sv"
 `include "pipeline/writeback/writeback.sv"
 `include "pipeline/regfile/regfile.sv"
+`include "pipeline/fwdmux.sv"
 
 `else
 
@@ -63,12 +64,11 @@ module core
 	assign flushF = ireq.valid & ~iresp.data_ok;
 
 	always_ff @(posedge clk) begin
-		if (reset | flushF) begin
+		if (reset | flushF | (!iresp.data_ok)) begin
 			dataF <= '0;
-		end else if(iresp.data_ok) begin
+		end 
+		else begin
 			dataF <= dataF_nxt;
-		end else begin
-			dataF <= dataF;
 		end
 	end
 
@@ -88,11 +88,11 @@ module core
 	assign flushD = ~dataF.valid;
 
 	always_ff @(posedge clk) begin
-		if (reset | flushD) begin
+		if (reset) begin
 			dataD <= '0;
-		end else begin
+		end else if (~flushD) begin
 			dataD <= dataD_nxt;
-		end
+		end else dataD.valid <= '0;
 	end
 
 	creg_addr_t ra1, ra2, wa;
@@ -114,15 +114,27 @@ module core
 	assign flushE = ~dataD.valid;
 
 	always_ff @(posedge clk) begin
-		if (reset | flushE) begin
+		if (reset) begin
 			dataE <= '0;
-		end else begin
+		end else if (~flushE) begin
 			dataE <= dataE_nxt;
-		end
+		end else dataE.valid <= '0;
 	end
+
+	fwd_data_t fwd_srca, fwd_srcb;
+	fwdmux fwdmux (
+		.dataD,
+		.dataE,
+		.dataM,
+		.dataW,
+		.fwd_srca,
+		.fwd_srcb
+	);
 
 	execute execute (
 		.dataD,
+		.fwda(fwd_srca),
+		.fwdb(fwd_srcb),
 		.dataE(dataE_nxt)
 	);
 
@@ -131,11 +143,11 @@ module core
 	assign flushM = ~dataE.valid;
 
 	always_ff @(posedge clk) begin
-		if (reset | flushM) begin
+		if (reset) begin
 			dataM <= '0;
-		end else begin
+		end else if(~flushM) begin
 			dataM <= dataM_nxt;
-		end
+		end else dataM.valid <= '0;
 	end
 
 	memory memory(
@@ -149,12 +161,14 @@ module core
 
 	assign flushW = ~dataM.valid;
 
+	u1 wdata_valid;
+
 	always_ff @(posedge clk) begin
-		if (reset | flushW) begin
+		if (reset) begin
 			dataW <= '0;
-		end else begin
+		end else if (~flushW) begin
 			dataW <= dataW_nxt;
-		end
+		end else dataW.valid <= '0;
 	end
 
 	writeback writeback(

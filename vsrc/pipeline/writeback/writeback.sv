@@ -21,14 +21,19 @@ module writeback
         dataW.pc = dataM.pc;
         dataW.raw_instr = dataM.raw_instr;
         dataW.dst = dataM.dst;
+        dataW.ra1 = dataM.ra1;
+        dataW.ra2 = dataM.ra2;
         dataW.ctl = dataM.ctl;
     end
+
+    word_t writedata1;
     muxword muxword_writedata (
         .choose(dataM.ctl.memread),
         .muxin0(dataM.aluout),
         .muxin1(dataM.readdata),
-        .muxout(dataW.writedata)
+        .muxout(writedata1)
     );
+    assign dataW.writedata = (dataM.dst != '0) ? writedata1 : '0;
 endmodule
 
 

@@ -59,6 +59,10 @@ typedef struct packed {
 	msize_t memsize;
 } control_t;
 
+typedef struct packed {
+	u1 enable;
+	word_t data;
+} fwd_data_t;
 
 typedef struct packed {
 	u1 valid;
@@ -72,7 +76,7 @@ typedef struct packed {
 	u64 pc;
 	word_t srca, srcb, imm;
 	control_t ctl;
-	creg_addr_t dst;
+	creg_addr_t ra1, ra2, dst;
 } decode_data_t;
 
 typedef struct packed {
@@ -81,7 +85,7 @@ typedef struct packed {
 	u64 pc;
 	word_t aluout, pcbranch, memwd;
 	control_t ctl;
-	creg_addr_t dst;
+	creg_addr_t ra1, ra2, dst;
 } execute_data_t;
 
 typedef struct packed {
@@ -90,7 +94,7 @@ typedef struct packed {
 	u64 pc;
 	word_t aluout, readdata;
 	control_t ctl;
-	creg_addr_t dst;
+	creg_addr_t ra1, ra2, dst;
 } memory_data_t;
 
 typedef struct packed {
@@ -99,7 +103,7 @@ typedef struct packed {
 	u64 pc;
 	word_t writedata;
 	control_t ctl;
-	creg_addr_t dst;
+	creg_addr_t ra1, ra2, dst;
 } writeback_data_t;
 
 endpackage

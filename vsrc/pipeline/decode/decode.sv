@@ -51,6 +51,8 @@ module decode
     assign dataD.pc = dataF.pc;
     assign dataD.raw_instr = dataF.raw_instr;
     assign dataD.ctl = ctl;
+    assign dataD.ra1 = ra1;
+    assign dataD.ra2 = ra2;
     assign dataD.dst = rdst;
 
     assign dataD.srca = rd1;

@@ -26,6 +26,8 @@ module memory
         dataM.pc = dataE.pc;
         dataM.raw_instr = dataE.raw_instr;
         dataM.dst = dataE.dst;
+        dataM.ra1 = dataE.ra1;
+        dataM.ra2 = dataE.ra2;
         dataM.aluout = dataE.aluout;
         dreq = '0;
         dataM.ctl = dataE.ctl;

@@ -15,17 +15,32 @@ module execute
     import common::*;
     import pipes::*;(
     input decode_data_t dataD,
+    input fwd_data_t fwda, fwdb,
     output execute_data_t dataE
 );
 
     control_t ctl = dataD.ctl;
-    word_t src1 = dataD.srca;
-    word_t src2;
+    word_t src1;
+    word_t src2_reg, src2;
     word_t aluout, aluoutw;
     
+    muxword muxword_fwdsrca (
+        .choose(fwda.enable),
+        .muxin0(dataD.srca),
+        .muxin1(fwda.data),
+        .muxout(src1)
+    );
+    
+    muxword muxword_fwdsrcb (
+        .choose(fwdb.enable),
+        .muxin0(dataD.srcb),
+        .muxin1(fwdb.data),
+        .muxout(src2_reg)
+    );
+
     muxword muxword_alusrcb (
         .choose(ctl.immsrc),
-        .muxin0(dataD.srcb),
+        .muxin0(src2_reg),
         .muxin1(dataD.imm),
         .muxout(src2)
     );
@@ -52,6 +67,8 @@ module execute
     assign dataE.valid = '1;
     assign dataE.pc = dataD.pc;
     assign dataE.raw_instr = dataD.raw_instr;
+    assign dataE.ra1 = dataD.ra1;
+    assign dataE.ra2 = dataD.ra2;
     assign dataE.dst = dataD.dst;
     assign dataE.ctl = ctl;
     assign dataE.memwd = dataD.srcb;
