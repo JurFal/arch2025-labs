@@ -19,6 +19,7 @@ parameter OP_I_OPW = 7'b0011011; // I-Type, operators, sign-externed 32-bit resu
 parameter OP_I_LIM = 7'b0000011; // I-Type, load immediate
 parameter OP_S_SIM = 7'b0100011; // S-Type, store immediate
 parameter OP_U_LUI = 7'b0110111; // U-Type, load upper immediate
+parameter OP_U_APC = 7'b0100111; // U-Type, load upper immediate
 
 // operation F3
 parameter F3_OP_ADD = 3'b000; // add and sub
@@ -55,7 +56,7 @@ typedef enum logic [4:0] {
 typedef struct packed {
 	opcode_t op;
 	alufunc_t alufunc;
-	u1 regwrite, immsrc, aluext, memwrite, memread, zeroextwb;
+	u1 regwrite, immsrc, aluext, memwrite, memread, zeroextwb, pcsrc;
 	msize_t memsize;
 } control_t;
 

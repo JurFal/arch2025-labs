@@ -12,9 +12,9 @@ module signext12
     import common::*;
     import pipes::*;(
     input u12 imm12,
-    output word_t imm
+    output word_t imm12ext
 );
-    assign imm = {{52{imm12[11]}}, imm12};
+    assign imm12ext = {{52{imm12[11]}}, imm12};
 endmodule
 
 

@@ -5,6 +5,8 @@
 `include "include/common.sv"
 `include "include/pipes.sv"
 `include "pipeline/decode/signext12.sv"
+`include "pipeline/decode/signext20.sv"
+`include "pipeline/muxword.sv"
 `else
 
 `endif
@@ -22,7 +24,10 @@ module decoder
     wire [2:0] f3 = raw_instr[14:12];
     wire [6:0] f7 = raw_instr[31:25];
 
+    u1 immtype;
     u12 imm12;
+    u20 imm20;
+    word_t imm12ext, imm20ext;
 
     always_comb begin
         ctl = '0;
@@ -30,6 +35,8 @@ module decoder
         ra2 = '0;
         rdst = '0;
         imm12 = '0;
+        imm20 = '0;
+        immtype = '0;
         unique case (op)
             OP_R_OPS: begin
                 ctl.regwrite = 1'b1;
@@ -217,6 +224,22 @@ module decoder
                     end
                 endcase
             end
+            OP_U_LUI: begin
+                ctl.regwrite = 1'b1;
+                ctl.immsrc = 1'b1;
+                ctl.alufunc = ALU_ADD;
+                rdst = raw_instr[11:7];
+                imm20 = raw_instr[31:12];
+            end
+            OP_U_APC: begin
+                ctl.regwrite = 1'b1;
+                ctl.immsrc = 1'b1;
+                ctl.alufunc = ALU_ADD;
+                ctl.pcsrc = 1'b1;
+                rdst = raw_instr[11:7];
+                imm20 = raw_instr[31:12];
+            end
+            
             default: begin
                 
             end
@@ -226,9 +249,21 @@ module decoder
 
     signext12 signext12 (
         .imm12,
-        .imm
+        .imm12ext,
+    );
+
+    signext20 signext20 (
+        .imm20,
+        .imm20ext,
     );
     
+    muxword immmux (
+        .choose(immtype),
+        .muxin0(imm12ext),
+        .muxin1(imm20ext),
+        .muxout(imm)
+    );
+
 endmodule
 
 

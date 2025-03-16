@@ -19,8 +19,10 @@ module execute
     output execute_data_t dataE
 );
 
-    control_t ctl = dataD.ctl;
-    word_t src1;
+    control_t ctl;
+    assign ctl = dataD.ctl;
+    
+    word_t src1_reg, src1;
     word_t src2_reg, src2;
     word_t aluout, aluoutw;
     
@@ -28,7 +30,7 @@ module execute
         .choose(fwda.enable),
         .muxin0(dataD.srca),
         .muxin1(fwda.data),
-        .muxout(src1)
+        .muxout(src1_reg)
     );
     
     muxword muxword_fwdsrcb (
@@ -36,6 +38,13 @@ module execute
         .muxin0(dataD.srcb),
         .muxin1(fwdb.data),
         .muxout(src2_reg)
+    );
+
+    muxword muxword_alusrca (
+        .choose(ctl.pcsrc),
+        .muxin0(src1_reg),
+        .muxin1(dataD.pc),
+        .muxout(src1)
     );
 
     muxword muxword_alusrcb (
