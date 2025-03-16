@@ -14,7 +14,8 @@ module signext20
     input u20 imm20,
     output word_t imm20ext
 );
-    assign imm20ext = {{32{imm20[19]}}, imm20 << 12};
+    
+    assign imm20ext = {{44{imm20[19]}}, imm20} << 12;
 endmodule
 
 

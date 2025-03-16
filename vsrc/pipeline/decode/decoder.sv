@@ -225,6 +225,7 @@ module decoder
                 endcase
             end
             OP_U_LUI: begin
+                immtype = 1'b1;
                 ctl.regwrite = 1'b1;
                 ctl.immsrc = 1'b1;
                 ctl.alufunc = ALU_ADD;
@@ -232,6 +233,7 @@ module decoder
                 imm20 = raw_instr[31:12];
             end
             OP_U_APC: begin
+                immtype = 1'b1;
                 ctl.regwrite = 1'b1;
                 ctl.immsrc = 1'b1;
                 ctl.alufunc = ALU_ADD;
@@ -249,12 +251,12 @@ module decoder
 
     signext12 signext12 (
         .imm12,
-        .imm12ext,
+        .imm12ext
     );
 
     signext20 signext20 (
         .imm20,
-        .imm20ext,
+        .imm20ext
     );
     
     muxword immmux (

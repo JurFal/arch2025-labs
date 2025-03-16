@@ -32,13 +32,25 @@ module core
 	u64 next_reg[31:0];
 
 	u1 stallpc;
+	u1 stallmem, stallmem_d;
+	u1 forceflush;
 
-	assign stallpc = ireq.valid & ~iresp.data_ok;
+	assign stallpc = ~iresp.data_ok;
+    assign stallmem = dreq.valid & ~dresp.data_ok;
+
+	always_ff @(posedge clk) begin
+		if(reset) begin
+			stallmem_d <= '0;
+		end else begin
+			stallmem_d <= stallmem;
+		end
+	end
+	assign forceflush = !stallmem & stallmem_d;
 
 	always_ff @(posedge clk) begin
 		if(reset) begin
 			pc <= 64'h8000_0000;
-		end else if(stallpc) begin
+		end else if(stallpc | stallmem) begin
 			pc <= pc;
 		end else begin
 			pc <= pc_nxt;
@@ -57,19 +69,15 @@ module core
 	assign raw_instr = iresp.data;
 	assign ireq.valid = '1;
 	assign ireq.addr = pc;
-	assign dreq = '0;
 
 	u1 flushF;
 
-	assign flushF = ireq.valid & ~iresp.data_ok;
+	assign flushF = iresp.data_ok & !stallmem;
 
 	always_ff @(posedge clk) begin
-		if (reset | flushF | (!iresp.data_ok)) begin
-			dataF <= '0;
-		end 
-		else begin
-			dataF <= dataF_nxt;
-		end
+		if (reset) dataF <= '0;
+		else if(flushF) dataF <= dataF_nxt;
+		else dataF.valid <= stallmem;
 	end
 
 	fetch fetch (
@@ -85,14 +93,12 @@ module core
 
 	u1 flushD;
 
-	assign flushD = ~dataF.valid;
+	assign flushD = dataF.valid & !stallmem;
 
 	always_ff @(posedge clk) begin
-		if (reset) begin
-			dataD <= '0;
-		end else if (~flushD) begin
-			dataD <= dataD_nxt;
-		end else dataD.valid <= '0;
+		if (reset) dataD <= '0;
+		else if (flushD) dataD <= dataD_nxt;
+		else dataD.valid <= stallmem;
 	end
 
 	creg_addr_t ra1, ra2, wa;
@@ -111,14 +117,12 @@ module core
 
 	u1 flushE;
 
-	assign flushE = ~dataD.valid;
+	assign flushE = dataD.valid & !stallmem;
 
 	always_ff @(posedge clk) begin
-		if (reset) begin
-			dataE <= '0;
-		end else if (~flushE) begin
-			dataE <= dataE_nxt;
-		end else dataE.valid <= '0;
+		if (reset) dataE <= '0;
+		else if (flushE) dataE <= dataE_nxt;
+		else dataE.valid <= stallmem;
 	end
 
 	fwd_data_t fwd_srca, fwd_srcb;
@@ -140,17 +144,16 @@ module core
 
 	u1 flushM;
 
-	assign flushM = ~dataE.valid;
+	assign flushM = dataE.valid & !stallmem;
 
 	always_ff @(posedge clk) begin
-		if (reset) begin
-			dataM <= '0;
-		end else if(~flushM) begin
-			dataM <= dataM_nxt;
-		end else dataM.valid <= '0;
+		if (reset) dataM <= '0;
+		else if(flushM) dataM <= dataM_nxt;
+		else dataM.valid <= '0;
 	end
 
 	memory memory(
+		.clk, .reset,
 		.dataE,
 		.dataM(dataM_nxt),
 		.dreq,
@@ -159,16 +162,14 @@ module core
 
 	u1 flushW;
 
-	assign flushW = ~dataM.valid;
+	assign flushW = dataM.valid & !stallmem;
 
 	u1 wdata_valid;
 
 	always_ff @(posedge clk) begin
-		if (reset) begin
-			dataW <= '0;
-		end else if (~flushW) begin
-			dataW <= dataW_nxt;
-		end else dataW.valid <= '0;
+		if (reset) dataW <= '0;
+		else if (flushW) dataW <= dataW_nxt;
+		else dataW.valid <= '0;
 	end
 
 	writeback writeback(

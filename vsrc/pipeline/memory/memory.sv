@@ -13,6 +13,7 @@
 module memory
     import common::*;
     import pipes::*;(
+    input u1 clk, reset,
     input execute_data_t dataE,
     output memory_data_t dataM,
     output dbus_req_t dreq,
@@ -31,6 +32,7 @@ module memory
         dataM.aluout = dataE.aluout;
         dreq = '0;
         dataM.ctl = dataE.ctl;
+        dataM.readdata = dresp.data;
         if(dataE.ctl.memread || dataE.ctl.memwrite) begin
             dreq.valid = '1;
             dreq.addr = dataE.aluout;
@@ -46,7 +48,6 @@ module memory
                 endcase
             end
         end
-        dataM.readdata = dresp.data;
     end
 
 endmodule
