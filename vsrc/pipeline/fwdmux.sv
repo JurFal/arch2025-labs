@@ -38,29 +38,20 @@ module fwdmux
 		.fwddata(dataE.aluout),
 		.fwd(fwd_op1_srcb)
 	);
-	
-	/*word_t fwd_mdata;
-
-	muxword fwdmdata (
-		.choose(dataM.ctl.memread),
-		.muxin0(dataM.aluout),
-		.muxin1(dataM.readdata),
-		.muxout(fwd_mdata)
-	);*/
 
 	fwd fwdop2a (
 		.src(dataD.ra1),
-		.dst(dataW.dst),
-		.regwrite(dataW.ctl.regwrite),
-		.fwddata(dataW.writedata),
+		.dst(dataM.dst),
+		.regwrite(dataM.ctl.regwrite),
+		.fwddata(dataM.writedata),
 		.fwd(fwd_op2_srca)
 	);
 
 	fwd fwdop2b (
 		.src(dataD.ra2),
-		.dst(dataW.dst),
-		.regwrite(dataW.ctl.regwrite),
-		.fwddata(dataW.writedata),
+		.dst(dataM.dst),
+		.regwrite(dataM.ctl.regwrite),
+		.fwddata(dataM.writedata),
 		.fwd(fwd_op2_srcb)
 	);
 

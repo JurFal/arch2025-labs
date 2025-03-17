@@ -56,6 +56,16 @@ module memory
             end
         end
     end
+
+    word_t writedata1;
+    muxword muxword_writedata (
+        .choose(dataM.ctl.memread),
+        .muxin0(dataM.aluout),
+        .muxin1(dataM.readdata),
+        .muxout(writedata1)
+    );
+    assign dataM.writedata = (dataM.dst != '0) ? writedata1 : '0;
+    
 endmodule
 
 
