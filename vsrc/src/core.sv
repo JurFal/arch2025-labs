@@ -93,7 +93,7 @@ module core
 
 	u1 flushD;
 
-	assign flushD = (dataF.valid & !stallmem) | forceflush;
+	assign flushD = (iresp.data_ok & !stallmem) | forceflush;
 
 	always_ff @(posedge clk) begin
 		if (reset) dataD <= '0;
@@ -107,7 +107,8 @@ module core
 
 	decode decode (
 		.clk, .reset,
-		.dataF,
+		.raw_instr,
+		.pc,
 		.dataD(dataD_nxt),
 		.wa(dataW.dst),
 		.wen(dataW.ctl.regwrite),

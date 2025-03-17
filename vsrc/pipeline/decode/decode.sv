@@ -14,7 +14,8 @@ module decode
     import common::*;
     import pipes::*;(
     input clk, reset,
-    input fetch_data_t dataF,
+    input word_t pc,
+    input u32 raw_instr,
     output decode_data_t dataD,
     input u1 wen,
     input creg_addr_t wa,
@@ -27,7 +28,7 @@ module decode
     word_t rd1, rd2, imm;
 
     decoder decoder (
-        .raw_instr(dataF.raw_instr),
+        .raw_instr,
         .ctl,
         .ra1,
         .ra2,
@@ -48,8 +49,8 @@ module decode
 	);
 
     assign dataD.valid = '1;
-    assign dataD.pc = dataF.pc;
-    assign dataD.raw_instr = dataF.raw_instr;
+    assign dataD.pc = pc;
+    assign dataD.raw_instr = raw_instr;
     assign dataD.ctl = ctl;
     assign dataD.ra1 = ra1;
     assign dataD.ra2 = ra2;
