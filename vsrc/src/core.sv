@@ -35,7 +35,7 @@ module core
 	u1 stallmem, stallmem_d;
 	u1 forceflush;
 
-	assign stallpc = ~iresp.data_ok;
+	assign stallpc = ireq.valid & ~iresp.data_ok;
     assign stallmem = dreq.valid & ~dresp.data_ok;
 
 	always_ff @(posedge clk) begin
@@ -72,7 +72,7 @@ module core
 
 	u1 flushF;
 
-	assign flushF = (iresp.data_ok & !stallmem) | forceflush;
+	assign flushF = iresp.data_ok & !stallmem;
 
 	always_ff @(posedge clk) begin
 		if (reset) dataF <= '0;
@@ -144,7 +144,7 @@ module core
 
 	u1 flushM;
 
-	assign flushM = (dataE.valid & !stallmem) | forceflush;
+	assign flushM = (dataE.valid & !stallmem);
 
 	always_ff @(posedge clk) begin
 		if (reset) dataM <= '0;
@@ -162,7 +162,7 @@ module core
 
 	u1 flushW;
 
-	assign flushW = dataM.valid & !stallmem;
+	assign flushW = dataM.valid;
 
 	u1 wdata_valid;
 
