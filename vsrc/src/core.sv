@@ -72,12 +72,11 @@ module core
 
 	u1 flushF;
 
-	assign flushF = (iresp.data_ok & !stallmem);
+	assign flushF = (iresp.data_ok & !stallmem & !stallpc);
 
 	always_ff @(posedge clk) begin
 		if (reset) dataF <= '0;
 		else if(flushF) dataF <= dataF_nxt;
-		else dataF.valid <= '0;
 	end
 
 	fetch fetch (
@@ -93,12 +92,11 @@ module core
 
 	u1 flushD;
 
-	assign flushD = (iresp.data_ok & !stallmem) | forceflush;
+	assign flushD = (iresp.data_ok & !stallmem & !stallpc) | forceflush;
 
 	always_ff @(posedge clk) begin
 		if (reset) dataD <= '0;
 		else if (flushD) dataD <= dataD_nxt;
-		else dataD.valid <= '0;
 	end
 
 	creg_addr_t ra1, ra2, wa;
@@ -118,12 +116,11 @@ module core
 
 	u1 flushE;
 
-	assign flushE = (dataD.valid & !stallmem) | forceflush;
+	assign flushE = (dataD.valid & !stallmem & !stallpc) | forceflush;
 
 	always_ff @(posedge clk) begin
 		if (reset) dataE <= '0;
 		else if (flushE) dataE <= dataE_nxt;
-		else dataE.valid <= '0;
 	end
 
 	fwd_data_t fwd_srca, fwd_srcb;
@@ -145,12 +142,11 @@ module core
 
 	u1 flushM;
 
-	assign flushM = (dataE.valid & !stallmem) | forceflush;
+	assign flushM = (dataE.valid & !stallmem & !stallpc) | forceflush;
 
 	always_ff @(posedge clk) begin
 		if (reset) dataM <= '0;
 		else if(flushM) dataM <= dataM_nxt;
-		else dataM.valid <= '0;
 	end
 
 	memory memory(
@@ -164,7 +160,7 @@ module core
 
 	u1 flushW;
 
-	assign flushW = dataM.valid;
+	assign flushW = dataM.valid & !stallpc;
 
 	u1 wdata_valid;
 
