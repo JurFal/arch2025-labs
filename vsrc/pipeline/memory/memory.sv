@@ -22,8 +22,9 @@ module memory
 );
 
     u3 float;
-    word_t rd1, rd1sg, rd;
+    word_t rd0, rd1, rd1sg, rd, float1;
     assign float = dataE.aluout[2:0];
+    assign float1 = {61'b0, float} << 3;
     always_comb begin
         dataM.valid = '1;
         dataM.pc = dataE.pc;
@@ -32,19 +33,28 @@ module memory
         dataM.ra1 = dataE.ra1;
         dataM.ra2 = dataE.ra2;
         dataM.ctl = dataE.ctl;
+        rd0 = '0;
+        rd1 = '0;
+        rd1sg = '0;
+        rd = '0;
         if(dataE.ctl.memread) begin
+            rd0 = dresp.data >> float1;
             case(dataE.ctl.memsize)
                 MSIZE1: begin
-                    rd1 = (dresp.data) & 64'hff;
+                    rd1 = rd0 & 64'hff;
                     rd1sg = {{56{rd1[7]}}, rd1[7:0]};
                 end
                 MSIZE2: begin
-                    rd1 = (dresp.data) & 64'hffff;
+                    rd1 = rd0 & 64'hffff;
                     rd1sg = {{48{rd1[15]}}, rd1[15:0]};
                 end
                 MSIZE4: begin
-                    rd1 = (dresp.data) & 64'hffffffff;
+                    rd1 = rd0 & 64'hffffffff;
                     rd1sg = {{32{rd1[31]}}, rd1[31:0]};
+                end
+                MSIZE8: begin
+                    rd1 = rd0;
+                    rd1sg = rd1;
                 end
                 default: begin
                     rd1 = '0;
@@ -64,7 +74,7 @@ module memory
             dreq.addr <= dataE.aluout;
             dreq.size <= dataE.ctl.memsize;
             if(dataE.ctl.memwrite) begin
-                dreq.data <= dataE.memwd << (float << 8);
+                dreq.data <= dataE.memwd << float1;
                 case(dataE.ctl.memsize)
                     MSIZE1: dreq.strobe <= 8'h01 << float;
                     MSIZE2: dreq.strobe <= 8'h03 << float;

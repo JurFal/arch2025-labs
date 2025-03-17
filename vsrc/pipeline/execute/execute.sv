@@ -80,7 +80,7 @@ module execute
     assign dataE.ra2 = dataD.ra2;
     assign dataE.dst = dataD.dst;
     assign dataE.ctl = ctl;
-    assign dataE.memwd = dataD.srcb;
+    assign dataE.memwd = src2_reg;
 
 endmodule
 
