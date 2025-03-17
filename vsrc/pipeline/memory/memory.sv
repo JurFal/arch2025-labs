@@ -22,6 +22,7 @@ module memory
 );
 
     u3 float;
+    word_t rd1, rd1sg, rd;
     assign float = dataE.aluout[2:0];
     always_comb begin
         dataM.valid = '1;
@@ -32,7 +33,26 @@ module memory
         dataM.ra2 = dataE.ra2;
         dataM.aluout = dataE.aluout;
         dataM.ctl = dataE.ctl;
-        dataM.readdata = dresp.data;
+        if(dataE.ctl.memread) begin
+            case(dataE.ctl.memsize)
+                MSIZE1: begin
+                    rd1 = (dresp.data) & 64'hff;
+                    rd1sg = {{56{rd1[7]}}, rd1[7:0]};
+                end
+                MSIZE2: begin
+                    rd1 = (dresp.data) & 64'hffff;
+                    rd1sg = {{48{rd1[15]}}, rd1[15:0]};
+                end
+                MSIZE4: begin
+                    rd1 = (dresp.data) & 64'hffffffff;
+                    rd1sg = {{32{rd1[31]}}, rd1[31:0]};
+                end
+                default: begin
+                    rd1 = '0;
+                    rd1sg = '0;
+                end
+            endcase
+        end
         stallmem = ~((dresp.addr_ok & dresp.data_ok) | (~(dataE.ctl.memread | dataE.ctl.memwrite)));
         
     end
@@ -58,10 +78,18 @@ module memory
     end
 
     word_t writedata1;
+
+    muxword muxword_rdext (
+        .choose(dataE.ctl.zeroextwb),
+        .muxin0(rd1sg),
+        .muxin1(rd1),
+        .muxout(rd)
+    );
+
     muxword muxword_writedata (
         .choose(dataE.ctl.memread),
         .muxin0(dataE.aluout),
-        .muxin1(dresp.data),
+        .muxin1(rd),
         .muxout(writedata1)
     );
     assign dataM.writedata = (dataE.dst != '0) ? writedata1 : '0;

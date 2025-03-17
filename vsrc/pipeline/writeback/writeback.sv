@@ -17,7 +17,7 @@ module writeback
 );
 
     always_comb begin
-        dataW.valid = '1;
+        dataW.valid = dataM.raw_instr != '0;
         dataW.pc = dataM.pc;
         dataW.raw_instr = dataM.raw_instr;
         dataW.dst = dataM.dst;

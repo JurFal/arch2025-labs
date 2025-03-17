@@ -44,7 +44,7 @@ module decode
 		.wen,
 		.wa,
 		.wd,
-        .next_reg
+        .REG(next_reg)
 	);
 
     assign dataD.valid = '1;

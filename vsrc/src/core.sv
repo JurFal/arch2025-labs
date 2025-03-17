@@ -72,7 +72,7 @@ module core
 
 	u1 flushF;
 
-	assign flushF = (iresp.data_ok & !stallmem & !stallpc);
+	assign flushF = (iresp.data_ok & !stallmem & !stallpc) | forceflush;
 
 	always_ff @(posedge clk) begin
 		if (reset) dataF <= '0;
@@ -107,9 +107,9 @@ module core
 		.clk, .reset,
 		.dataF,
 		.dataD(dataD_nxt),
-		.wa(dataW.dst),
-		.wen(dataW.ctl.regwrite),
-		.wd(dataW.writedata),
+		.wa(dataW_nxt.dst),
+		.wen(dataW_nxt.ctl.regwrite),
+		.wd(dataW_nxt.writedata),
 		.next_reg
 	);
 
