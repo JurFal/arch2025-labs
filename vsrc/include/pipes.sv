@@ -93,7 +93,7 @@ typedef struct packed {
 	u1 valid;
 	u32 raw_instr;
 	u64 pc;
-	word_t aluout, readdata;
+	word_t aluout, readdata, writedata;
 	control_t ctl;
 	creg_addr_t ra1, ra2, dst;
 } memory_data_t;
