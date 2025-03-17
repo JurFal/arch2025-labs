@@ -17,7 +17,8 @@ module memory
     input execute_data_t dataE,
     output memory_data_t dataM,
     output dbus_req_t dreq,
-    input dbus_resp_t dresp
+    input dbus_resp_t dresp,
+    output u1 stallmem
 );
 
     u3 float;
@@ -32,10 +33,13 @@ module memory
         dataM.aluout = dataE.aluout;
         dataM.ctl = dataE.ctl;
         dataM.readdata = dresp.data;
+        stallmem = ~((dresp.addr_ok & dresp.data_ok) | (~(dataE.ctl.memread | dataE.ctl.memwrite)));
+        
     end
 
     always_ff @(posedge clk) begin
-        if(reset | (dresp.addr_ok & dresp.data_ok)) dreq <= '0;
+        if(reset) dreq <= '0;
+        else if((dresp.addr_ok & dresp.data_ok)) dreq <= '0;
         else if((dataE.ctl.memread | dataE.ctl.memwrite) & ~dreq.valid) begin
             dreq.valid <= '1;
             dreq.addr <= dataE.aluout;

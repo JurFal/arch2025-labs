@@ -72,7 +72,7 @@ module core
 
 	u1 flushF;
 
-	assign flushF = iresp.data_ok & !stallmem;
+	assign flushF = (iresp.data_ok & !stallmem);
 
 	always_ff @(posedge clk) begin
 		if (reset) dataF <= '0;
@@ -93,7 +93,7 @@ module core
 
 	u1 flushD;
 
-	assign flushD = dataF.valid & !stallmem;
+	assign flushD = (dataF.valid & !stallmem) | forceflush;
 
 	always_ff @(posedge clk) begin
 		if (reset) dataD <= '0;
@@ -117,7 +117,7 @@ module core
 
 	u1 flushE;
 
-	assign flushE = dataD.valid & !stallmem;
+	assign flushE = (dataD.valid & !stallmem) | forceflush;
 
 	always_ff @(posedge clk) begin
 		if (reset) dataE <= '0;
@@ -144,7 +144,7 @@ module core
 
 	u1 flushM;
 
-	assign flushM = (dataE.valid & !stallmem);
+	assign flushM = (dataE.valid & !stallmem) | forceflush;
 
 	always_ff @(posedge clk) begin
 		if (reset) dataM <= '0;
@@ -157,7 +157,8 @@ module core
 		.dataE,
 		.dataM(dataM_nxt),
 		.dreq,
-		.dresp
+		.dresp,
+		.stallmem
 	);
 
 	u1 flushW;
