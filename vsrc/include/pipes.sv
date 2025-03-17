@@ -69,6 +69,9 @@ typedef struct packed {
 	u1 valid;
 	u32 raw_instr;
 	u64 pc;
+	word_t imm;
+	control_t ctl;
+	creg_addr_t ra1, ra2, dst;
 } fetch_data_t;
 
 typedef struct packed {

@@ -32,11 +32,13 @@ module core
 	u64 next_reg[31:0];
 
 	u1 stallpc;
+	u1 stalllu;
 	u1 stallmem, stallmem_d;
 	u1 forceflush;
 
 	assign stallpc = ireq.valid & ~iresp.data_ok;
     assign stallmem = dreq.valid & ~dresp.data_ok;
+	assign stalllu = dataD.ctl.memread & (dataF.ra1 == dataD.dst | dataF.ra2 == dataD.dst);
 
 	always_ff @(posedge clk) begin
 		if(reset) begin
@@ -50,7 +52,7 @@ module core
 	always_ff @(posedge clk) begin
 		if(reset) begin
 			pc <= 64'h8000_0000;
-		end else if(stallpc | stallmem) begin
+		end else if(stallpc | stallmem | stalllu) begin
 			pc <= pc;
 		end else begin
 			pc <= pc_nxt;
@@ -72,7 +74,7 @@ module core
 
 	u1 flushF;
 
-	assign flushF = (iresp.data_ok & !stallmem & !stallpc) | forceflush;
+	assign flushF = (iresp.data_ok & !stallmem & !stallpc & !stalllu) | forceflush;
 
 	always_ff @(posedge clk) begin
 		if (reset) dataF <= '0;

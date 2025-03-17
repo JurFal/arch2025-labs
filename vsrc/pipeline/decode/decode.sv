@@ -22,23 +22,12 @@ module decode
     output u64 next_reg[31:0]
 );
 
-    creg_addr_t ra1, ra2, rdst;
-    control_t ctl;
-    word_t rd1, rd2, imm;
-
-    decoder decoder (
-        .raw_instr(dataF.raw_instr),
-        .ctl,
-        .ra1,
-        .ra2,
-        .rdst,
-        .imm
-    );
+    word_t rd1, rd2;
 	
 	regfile regfile(
 		.clk, .reset,
-		.ra1,
-		.ra2,
+		.ra1(dataF.ra1),
+		.ra2(dataF.ra2),
 		.rd1,
 		.rd2,
 		.wen,
@@ -50,14 +39,14 @@ module decode
     assign dataD.valid = '1;
     assign dataD.pc = dataF.pc;
     assign dataD.raw_instr = dataF.raw_instr;
-    assign dataD.ctl = ctl;
-    assign dataD.ra1 = ra1;
-    assign dataD.ra2 = ra2;
-    assign dataD.dst = rdst;
+    assign dataD.ctl = dataF.ctl;
+    assign dataD.ra1 = dataF.ra1;
+    assign dataD.ra2 = dataF.ra2;
+    assign dataD.dst = dataF.dst;
+    assign dataD.imm = dataF.imm;
 
     assign dataD.srca = rd1;
     assign dataD.srcb = rd2;
-    assign dataD.imm = imm;
     
 endmodule
 
