@@ -30,26 +30,28 @@ module memory
         dataM.ra1 = dataE.ra1;
         dataM.ra2 = dataE.ra2;
         dataM.aluout = dataE.aluout;
-        dreq = '0;
         dataM.ctl = dataE.ctl;
         dataM.readdata = dresp.data;
-        if(dataE.ctl.memread || dataE.ctl.memwrite) begin
-            dreq.valid = '1;
-            dreq.addr = dataE.aluout;
-            dreq.size = dataE.ctl.memsize;
+    end
+
+    always_ff @(posedge clk) begin
+        if(reset | (dresp.addr_ok & dresp.data_ok)) dreq <= '0;
+        else if((dataE.ctl.memread | dataE.ctl.memwrite) & ~dreq.valid) begin
+            dreq.valid <= '1;
+            dreq.addr <= dataE.aluout;
+            dreq.size <= dataE.ctl.memsize;
             if(dataE.ctl.memwrite) begin
-                dreq.data = dataE.memwd << (float << 8);
+                dreq.data <= dataE.memwd << (float << 8);
                 case(dataE.ctl.memsize)
-                    MSIZE1: dreq.strobe = 8'h01 << float;
-                    MSIZE2: dreq.strobe = 8'h03 << float;
-                    MSIZE4: dreq.strobe = 8'h0f << float;
-                    MSIZE8: dreq.strobe = 8'hff << float;
-                    default: dreq.strobe = '0;
+                    MSIZE1: dreq.strobe <= 8'h01 << float;
+                    MSIZE2: dreq.strobe <= 8'h03 << float;
+                    MSIZE4: dreq.strobe <= 8'h0f << float;
+                    MSIZE8: dreq.strobe <= 8'hff << float;
+                    default: dreq.strobe <= '0;
                 endcase
             end
         end
     end
-
 endmodule
 
 
