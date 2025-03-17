@@ -4,7 +4,6 @@
 `ifdef VERILATOR
 `include "include/common.sv"
 `include "include/pipes.sv"
-`include "pipeline/decode/decoder.sv"
 `include "pipeline/regfile/regfile.sv"
 `else
 
@@ -19,7 +18,8 @@ module decode
     input u1 wen,
     input creg_addr_t wa,
     input word_t wd,
-    output u64 next_reg[31:0]
+    output u64 next_reg[31:0],
+    input u1 stalllu
 );
 
     word_t rd1, rd2;
@@ -38,8 +38,8 @@ module decode
 
     assign dataD.valid = '1;
     assign dataD.pc = dataF.pc;
-    assign dataD.raw_instr = dataF.raw_instr;
-    assign dataD.ctl = dataF.ctl;
+    assign dataD.raw_instr = ~stalllu ? dataF.raw_instr : '0;
+    assign dataD.ctl = ~stalllu ? dataF.ctl : '0;
     assign dataD.ra1 = dataF.ra1;
     assign dataD.ra2 = dataF.ra2;
     assign dataD.dst = dataF.dst;

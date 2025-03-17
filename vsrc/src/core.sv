@@ -112,7 +112,8 @@ module core
 		.wa(dataW_nxt.dst),
 		.wen(dataW_nxt.ctl.regwrite),
 		.wd(dataW_nxt.writedata),
-		.next_reg
+		.next_reg,
+		.stalllu
 	);
 
 	u1 flushE;

@@ -31,7 +31,6 @@ module memory
         dataM.dst = dataE.dst;
         dataM.ra1 = dataE.ra1;
         dataM.ra2 = dataE.ra2;
-        dataM.aluout = dataE.aluout;
         dataM.ctl = dataE.ctl;
         if(dataE.ctl.memread) begin
             case(dataE.ctl.memsize)

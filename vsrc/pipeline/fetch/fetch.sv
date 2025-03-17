@@ -23,7 +23,7 @@ module fetch
     word_t rd1, rd2, imm;
 
     decoder decoder (
-        .raw_instr(dataF.raw_instr),
+        .raw_instr,
         .ctl,
         .ra1,
         .ra2,

@@ -11,6 +11,7 @@
 module fwd 
     import common::*;
     import pipes::*;(
+    input word_t a_pc, b_pc,
     input creg_addr_t src, dst,
     input u1 regwrite,
     input word_t fwddata,
@@ -18,7 +19,7 @@ module fwd
 );
     always_comb begin
         fwd = '0;
-        if(regwrite & (dst != 5'b0) & (src == dst)) begin
+        if(a_pc != b_pc & regwrite & (dst != 5'b0) & (src == dst)) begin
             fwd.enable = '1;
             fwd.data = fwddata;
         end

@@ -24,6 +24,8 @@ module fwdmux
 	fwd_data_t fwd_op2_srca, fwd_op2_srcb;
 
 	fwd fwdop1a (
+		.a_pc(dataD.pc),
+		.b_pc(dataE.pc),
 		.src(dataD.ra1),
 		.dst(dataE.dst),
 		.regwrite(dataE.ctl.regwrite),
@@ -32,6 +34,8 @@ module fwdmux
 	);
 
 	fwd fwdop1b (
+		.a_pc(dataD.pc),
+		.b_pc(dataE.pc),
 		.src(dataD.ra2),
 		.dst(dataE.dst),
 		.regwrite(dataE.ctl.regwrite),
@@ -40,6 +44,8 @@ module fwdmux
 	);
 
 	fwd fwdop2a (
+		.a_pc(dataD.pc),
+		.b_pc(dataM.pc),
 		.src(dataD.ra1),
 		.dst(dataM.dst),
 		.regwrite(dataM.ctl.regwrite),
@@ -48,6 +54,8 @@ module fwdmux
 	);
 
 	fwd fwdop2b (
+		.a_pc(dataD.pc),
+		.b_pc(dataM.pc),
 		.src(dataD.ra2),
 		.dst(dataM.dst),
 		.regwrite(dataM.ctl.regwrite),
