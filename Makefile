@@ -25,7 +25,7 @@ sim-verilog:
 	@echo "I don't know why, just make difftest happy..."
 
 # uncomment this line for a stronger test of data hazard
-DIFFTEST_OPTS = DELAY=0 
+#DIFFTEST_OPTS = DELAY=0 
 
 emu:
 	$(MAKE) -C ./difftest emu $(DIFFTEST_OPTS)
