@@ -21,10 +21,10 @@ module memory
     output u1 stallmem
 );
 
-    u3 float;
-    word_t rd0, rd1, rd1sg, rd, float1;
-    assign float = dataE.aluout[2:0];
-    assign float1 = {61'b0, float} << 3;
+    u3 offset;
+    word_t rd0, rd1, rd1sg, rd, offset1;
+    assign offset = dataE.aluout[2:0];
+    assign offset1 = {61'b0, offset} << 3;
     always_comb begin
         dataM.valid = '1;
         dataM.pc = dataE.pc;
@@ -38,7 +38,7 @@ module memory
         rd1sg = '0;
         rd = '0;
         if(dataE.ctl.memread) begin
-            rd0 = dresp.data >> float1;
+            rd0 = dresp.data >> offset1;
             case(dataE.ctl.memsize)
                 MSIZE1: begin
                     rd1 = rd0 & 64'hff;
@@ -74,12 +74,12 @@ module memory
             dreq.addr <= dataE.aluout;
             dreq.size <= dataE.ctl.memsize;
             if(dataE.ctl.memwrite) begin
-                dreq.data <= dataE.memwd << float1;
+                dreq.data <= dataE.memwd << offset1;
                 case(dataE.ctl.memsize)
-                    MSIZE1: dreq.strobe <= 8'h01 << float;
-                    MSIZE2: dreq.strobe <= 8'h03 << float;
-                    MSIZE4: dreq.strobe <= 8'h0f << float;
-                    MSIZE8: dreq.strobe <= 8'hff << float;
+                    MSIZE1: dreq.strobe <= 8'h01 << offset;
+                    MSIZE2: dreq.strobe <= 8'h03 << offset;
+                    MSIZE4: dreq.strobe <= 8'h0f << offset;
+                    MSIZE8: dreq.strobe <= 8'hff << offset;
                     default: dreq.strobe <= '0;
                 endcase
             end
