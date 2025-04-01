@@ -24,11 +24,11 @@ module alu
             ALU_AND: aluout = src1 & src2;
             ALU_OR: aluout = src1 | src2;
             ALU_XOR: aluout = src1 ^ src2;
-            //ALU_SLL: aluout = src1 << src2;
-            //ALU_SRL: aluout = src1 >> src2;
-            //ALU_SRA: aluout = src1 >>> src2;
-            //ALU_SLT: aluout = (src1 < src2) ? 1 : 0;
-            //ALU_SLTU: aluout = (src1 < src2) ? 1 : 0;
+            ALU_SLL: aluout = src1 << src2;
+            ALU_SRL: aluout = src1 >> src2;
+            ALU_SRA: aluout = src1 >>> src2;
+            ALU_SLT: aluout = (src1 < src2) ? 1 : 0;
+            ALU_SLTU: aluout = ($unsigned(src1) < $unsigned(src2)) ? 1 : 0;
             default: aluout = '0;
         endcase
     end

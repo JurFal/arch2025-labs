@@ -27,17 +27,18 @@ module core
 	input logic trint, swint, exint
 );
 	/* TODO: Add your pipeline here. */	
-	u64 pc, pc_nxt;
+	word_t pc, pc_nxt, branch_target;
 
-	u64 next_reg[31:0];
+	word_t next_reg[31:0];
 
 	u1 stallpc;
 	u1 stalllu;
 	u1 stallmem, stallmem_d;
+	u1 branch_enable;
 	u1 forceflush;
 
 	assign stallpc = ireq.valid & ~iresp.data_ok;
-    assign stallmem = dreq.valid & ~dresp.data_ok;
+    //assign stallmem = dreq.valid & ~dresp.data_ok;
 	assign stalllu = dataD.ctl.memread & (dataF.ra1 == dataD.dst | dataF.ra2 == dataD.dst);
 
 	always_ff @(posedge clk) begin
@@ -59,7 +60,6 @@ module core
 		end
 	end
 
-
 	fetch_data_t dataF, dataF_nxt;
 	decode_data_t dataD, dataD_nxt;
 	execute_data_t dataE, dataE_nxt;
@@ -72,12 +72,13 @@ module core
 	assign ireq.valid = '1;
 	assign ireq.addr = pc;
 
-	u1 flushF;
+	u1 flushF, bubbleF;
 
 	assign flushF = (iresp.data_ok & !stallmem & !stallpc & !stalllu) | forceflush;
+	assign bubbleF = branch_enable & (pc != branch_target);
 
 	always_ff @(posedge clk) begin
-		if (reset) dataF <= '0;
+		if (reset | bubbleF) dataF <= '0;
 		else if(flushF) dataF <= dataF_nxt;
 	end
 
@@ -87,17 +88,20 @@ module core
 		.pc
 	);
 	
-	pcselect pcselect (
-		.pcp4(pc + 4),
-		.pc_out(pc_nxt)
+	muxword pcselect (
+		.choose(branch_enable),
+		.muxin0(pc + 4),
+		.muxin1(branch_target),
+		.muxout(pc_nxt)
 	);
 
-	u1 flushD;
+	u1 flushD, bubbleD;
 
 	assign flushD = (dataF.valid & !stallmem & !stallpc) | forceflush;
+	assign bubbleD = branch_enable & (pc != branch_target);
 
 	always_ff @(posedge clk) begin
-		if (reset) dataD <= '0;
+		if (reset | bubbleD) dataD <= '0;
 		else if (flushD) dataD <= dataD_nxt;
 	end
 
@@ -139,7 +143,9 @@ module core
 		.dataD,
 		.fwda(fwd_srca),
 		.fwdb(fwd_srcb),
-		.dataE(dataE_nxt)
+		.dataE(dataE_nxt),
+		.branch_enable,
+		.branch_target
 	);
 
 	u1 flushM;
@@ -187,7 +193,7 @@ module core
 		.valid              (dataW.valid),
 		.pc                 (dataW.pc),
 		.instr              (dataW.raw_instr),
-		.skip               (0),
+		.skip    			(((dataW.ctl.memwrite | dataW.ctl.memread) & dataW.memaddr[31] == 0)),
 		.isRVC              (0),
 		.scFailed           (0),
 		.wen                (dataW.ctl.regwrite),

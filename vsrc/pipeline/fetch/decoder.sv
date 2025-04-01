@@ -4,8 +4,9 @@
 `ifdef VERILATOR
 `include "include/common.sv"
 `include "include/pipes.sv"
-`include "pipeline/decode/signext12.sv"
-`include "pipeline/decode/signext20.sv"
+`include "pipeline/fetch/signext12.sv"
+`include "pipeline/fetch/shamtzeroext.sv"
+`include "pipeline/fetch/signext20.sv"
 `include "pipeline/muxword.sv"
 `else
 
@@ -23,23 +24,28 @@ module decoder
     wire [6:0] op = raw_instr[6:0];
     wire [2:0] f3 = raw_instr[14:12];
     wire [6:0] f7 = raw_instr[31:25];
+    wire [5:0] f6 = raw_instr[31:26];
 
-    u1 immtype;
+    u1 immtype, shamttype;
+    u6 shamt;
     u12 imm12;
     u20 imm20;
-    word_t imm12ext, imm20ext;
+    word_t imm12ext, imm20ext, immext, shamtext;
 
     always_comb begin
         ctl = '0;
         ra1 = '0;
         ra2 = '0;
         rdst = '0;
+        shamt = '0;
         imm12 = '0;
         imm20 = '0;
         immtype = '0;
+        shamttype = '0;
         unique case (op)
             OP_R_OPS: begin
                 ctl.regwrite = 1'b1;
+                ctl.branchfunc = BRH_NEV;
                 ra1 = raw_instr[19:15];
                 ra2 = raw_instr[24:20];
                 rdst = raw_instr[11:7];
@@ -58,16 +64,42 @@ module decoder
                             ctl.alufunc = ALU_ADD;
                         end
                     end
+                    F3_OP_SLE: begin
+                        ctl.op = SLL;
+                        ctl.alufunc = ALU_SLL;
+                    end
+                    F3_OP_SLT: begin
+                        ctl.op = SLT;
+                        ctl.alufunc = ALU_SLT;
+                    end
+                    F3_OP_SLU: begin
+                        ctl.op = SLTU;
+                        ctl.alufunc = ALU_SLTU;
+                    end
                     F3_OP_XOR: begin
-                        ctl.op = XORI;
+                        ctl.op = XOR;
                         ctl.alufunc = ALU_XOR;
                     end
+                    F3_OP_SRG: begin
+                        if (f7 == 7'b0000000) begin
+                            ctl.op = SRL;
+                            ctl.alufunc = ALU_SRL;
+                        end
+                        else if (f7 == 7'b0100000) begin
+                            ctl.op = SRA;
+                            ctl.alufunc = ALU_SRA;
+                        end
+                        else begin
+                            ctl.op = UNKNOWN;
+                            ctl.alufunc = ALU_ADD;
+                        end
+                    end
                     F3_OP_ORR: begin
-                        ctl.op = ORI;
+                        ctl.op = OR;
                         ctl.alufunc = ALU_OR;
                     end
                     F3_OP_AND: begin
-                        ctl.op = ANDI;
+                        ctl.op = AND;
                         ctl.alufunc = ALU_AND;
                     end
                     default: begin
@@ -79,6 +111,7 @@ module decoder
             OP_R_OPW: begin
                 ctl.regwrite = 1'b1;
                 ctl.aluext = 1'b1;
+                ctl.branchfunc = BRH_NEV;
                 ra1 = raw_instr[19:15];
                 ra2 = raw_instr[24:20];
                 rdst = raw_instr[11:7];
@@ -97,6 +130,24 @@ module decoder
                             ctl.alufunc = ALU_ADD;
                         end
                     end
+                    F3_OP_SLE: begin
+                        ctl.op = SLLW;
+                        ctl.alufunc = ALU_SLL;
+                    end
+                    F3_OP_SRG: begin
+                        if (f7 == 7'b0000000) begin
+                            ctl.op = SRLW;
+                            ctl.alufunc = ALU_SRL;
+                        end
+                        else if (f7 == 7'b0100000) begin
+                            ctl.op = SRAW;
+                            ctl.alufunc = ALU_SRA;
+                        end
+                        else begin
+                            ctl.op = UNKNOWN;
+                            ctl.alufunc = ALU_ADD;
+                        end
+                    end
                     default: begin
                         ctl.op = UNKNOWN;
                         ctl.alufunc = ALU_ADD;
@@ -106,23 +157,66 @@ module decoder
             OP_I_OPS: begin
                 ctl.regwrite = 1'b1;
                 ctl.immsrc = 1'b1;
+                ctl.branchfunc = BRH_NEV;
                 ra1 = raw_instr[19:15];
                 rdst = raw_instr[11:7];
-                imm12 = raw_instr[31:20];
                 unique case (f3)
                     F3_OP_ADD: begin
+                        imm12 = raw_instr[31:20];
                         ctl.op = ADDI;
                         ctl.alufunc = ALU_ADD;
                     end
+                    F3_OP_SLE: begin
+                        shamttype = '1;
+                        if (f6 == 6'b000000) begin
+                            shamt = raw_instr[25:20];
+                            ctl.op = SLLI;
+                            ctl.alufunc = ALU_SLL;
+                        end
+                        else begin
+                            ctl.op = UNKNOWN;
+                            ctl.alufunc = ALU_ADD;
+                        end
+                    end
+                    F3_OP_SLT: begin
+                        imm12 = raw_instr[31:20];
+                        ctl.op = SLTI;
+                        ctl.alufunc = ALU_SLT;
+                    end
+                    F3_OP_SLU: begin
+                        imm12 = raw_instr[31:20];
+                        ctl.op = SLTIU;
+                        ctl.alufunc = ALU_SLTU;
+                    end
                     F3_OP_XOR: begin
+                        imm12 = raw_instr[31:20];
                         ctl.op = XORI;
                         ctl.alufunc = ALU_XOR;
                     end
                     F3_OP_ORR: begin
+                        imm12 = raw_instr[31:20];
                         ctl.op = ORI;
                         ctl.alufunc = ALU_OR;
                     end
+                    F3_OP_SRG: begin
+                        shamttype = '1;
+                        if (f6 == 6'b000000) begin
+                            shamt = raw_instr[25:20];
+                            ctl.op = SRLI;
+                            ctl.alufunc = ALU_SRL;
+                        end
+                        else if (f6 == 6'b010000) begin
+                            shamt = raw_instr[25:20];
+                            ctl.op = SRAI;
+                            ctl.alufunc = ALU_SRA;
+                        end
+                        else begin
+                            ctl.op = UNKNOWN;
+                            ctl.alufunc = ALU_ADD;
+                        end
+                    end
                     F3_OP_AND: begin
+                        imm12 = raw_instr[31:20];
                         ctl.op = ANDI;
                         ctl.alufunc = ALU_AND;
                     end
@@ -136,13 +230,43 @@ module decoder
                 ctl.regwrite = 1'b1;
                 ctl.immsrc = 1'b1;
                 ctl.aluext = 1'b1;
+                ctl.branchfunc = BRH_NEV;
                 ra1 = raw_instr[19:15];
                 rdst = raw_instr[11:7];
-                imm12 = raw_instr[31:20];
                 unique case (f3)
                     F3_OP_ADD: begin
+                        imm12 = raw_instr[31:20];
                         ctl.op = ADDIW;
                         ctl.alufunc = ALU_ADD;
+                    end
+                    F3_OP_SLE: begin
+                        shamttype = '1;
+                        if (f6 == 6'b000000) begin
+                            shamt = raw_instr[25:20];
+                            ctl.op = SLLIW;
+                            ctl.alufunc = ALU_SLL;
+                        end
+                        else begin
+                            ctl.op = UNKNOWN;
+                            ctl.alufunc = ALU_ADD;
+                        end
+                    end
+                    F3_OP_SRG: begin
+                        shamttype = '1;
+                        if (f6 == 6'b000000) begin
+                            shamt = raw_instr[25:20];
+                            ctl.op = SRLIW;
+                            ctl.alufunc = ALU_SRL;
+                        end
+                        else if (f6 == 6'b010000) begin
+                            shamt = raw_instr[25:20];
+                            ctl.op = SRAIW;
+                            ctl.alufunc = ALU_SRA;
+                        end
+                        else begin
+                            ctl.op = UNKNOWN;
+                            ctl.alufunc = ALU_ADD;
+                        end
                     end
                     default: begin
                         ctl.op = UNKNOWN;
@@ -155,6 +279,7 @@ module decoder
                 ctl.immsrc = 1'b1;
                 ctl.memread = 1'b1;
                 ctl.alufunc = ALU_ADD;
+                ctl.branchfunc = BRH_NEV;
                 ra1 = raw_instr[19:15];
                 rdst = raw_instr[11:7];
                 imm12 = raw_instr[31:20];
@@ -195,10 +320,79 @@ module decoder
                     end
                 endcase
             end
+            OP_I_JLR: begin
+                ctl.immsrc = 1'b1;
+                ctl.regwrite = 1'b1;
+                ctl.alufunc = ALU_ADD;
+                ctl.branchfunc = BRH_AWS;
+                ra1 = raw_instr[19:15];
+                rdst = raw_instr[11:7];
+                imm12 = raw_instr[31:20];
+                unique case (f3)
+                    F3_JL_JLR: begin
+                        ctl.op = JALR;
+                    end
+                    default: begin
+                        ctl.op = UNKNOWN;
+                    end
+                endcase
+            end
+            OP_B_BRH: begin
+                ctl.immsrc = 1'b1;
+                ctl.pcsrc = 1'b1;
+                ctl.regwrite = 1'b1;
+                ctl.alufunc = ALU_ADD;
+                ra1 = raw_instr[19:15];
+                ra2 = raw_instr[24:20];
+                unique case (f3)
+                    F3_BR_BEQ: begin
+                        ctl.op = BEQ;
+                        ctl.branchfunc = BRH_EQL;
+                    end
+                    F3_BR_BNE: begin
+                        ctl.op = BNE;
+                        ctl.branchfunc = BRH_NEQ;
+                    end
+                    F3_BR_BLT: begin
+                        ctl.op = BLT;
+                        ctl.branchfunc = BRH_LST;
+                    end
+                    F3_BR_BGE: begin
+                        ctl.op = BGE;
+                        ctl.branchfunc = BRH_GOE;
+                    end
+                    F3_BR_BLU: begin
+                        ctl.op = BLTU;
+                        ctl.branchfunc = BRH_LSTU;
+                    end
+                    F3_BR_BGU: begin
+                        ctl.op = BGEU;
+                        ctl.branchfunc = BRH_GOEU;
+                    end
+                    default: begin
+                        ctl.op = UNKNOWN;
+                        ctl.branchfunc = BRH_NEV;
+                    end
+                endcase
+                rdst = raw_instr[11:7];
+                imm12 = {raw_instr[31], raw_instr[7], raw_instr[30:25], raw_instr[11:8]};
+            end
+            OP_J_JAL: begin
+                immtype = 1'b1;
+                ctl.immsrc = 1'b1;
+                ctl.pcsrc = 1'b1;
+                ctl.regwrite = 1'b1;
+                ctl.alufunc = ALU_ADD;
+                ctl.branchfunc = BRH_AWS;
+                rdst = raw_instr[11:7];
+                imm20 = {raw_instr[31], raw_instr[19:12], raw_instr[20], raw_instr[30:21]};
+                ctl.op = JAL;
+            end
             OP_S_SIM: begin
                 ctl.immsrc = 1'b1;
                 ctl.memwrite = 1'b1;
                 ctl.alufunc = ALU_ADD;
+                ctl.branchfunc = BRH_NEV;
                 ra1 = raw_instr[19:15];
                 ra2 = raw_instr[24:20];
                 imm12 = {raw_instr[31:25], raw_instr[11:7]};
@@ -229,6 +423,7 @@ module decoder
                 ctl.regwrite = 1'b1;
                 ctl.immsrc = 1'b1;
                 ctl.alufunc = ALU_ADD;
+                ctl.branchfunc = BRH_NEV;
                 rdst = raw_instr[11:7];
                 imm20 = raw_instr[31:12];
             end
@@ -237,6 +432,7 @@ module decoder
                 ctl.regwrite = 1'b1;
                 ctl.immsrc = 1'b1;
                 ctl.alufunc = ALU_ADD;
+                ctl.branchfunc = BRH_NEV;
                 ctl.pcsrc = 1'b1;
                 rdst = raw_instr[11:7];
                 imm20 = raw_instr[31:12];
@@ -248,6 +444,11 @@ module decoder
         endcase
         
     end
+
+    shamtzeroext shamtzeroext(
+        .shamt,
+        .shamtext
+    );
 
     signext12 signext12 (
         .imm12,
@@ -263,6 +464,13 @@ module decoder
         .choose(immtype),
         .muxin0(imm12ext),
         .muxin1(imm20ext),
+        .muxout(immext)
+    );
+
+    muxword shamtmux (
+        .choose(shamttype),
+        .muxin0(immext),
+        .muxin1(shamtext),
         .muxout(imm)
     );
 

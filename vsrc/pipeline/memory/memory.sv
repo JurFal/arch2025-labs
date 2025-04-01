@@ -36,7 +36,6 @@ module memory
         rd0 = '0;
         rd1 = '0;
         rd1sg = '0;
-        rd = '0;
         if(dataE.ctl.memread) begin
             rd0 = dresp.data >> offset1;
             case(dataE.ctl.memsize)
@@ -102,6 +101,7 @@ module memory
         .muxout(writedata1)
     );
     assign dataM.writedata = (dataE.dst != '0) ? writedata1 : '0;
+    assign dataM.memaddr = (dataE.ctl.memread | dataE.ctl.memwrite) ? dataE.aluout : '0;
 
 endmodule
 

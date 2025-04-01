@@ -5,6 +5,7 @@
 `include "include/common.sv"
 `include "include/pipes.sv"
 `include "pipeline/execute/alu.sv"
+`include "pipeline/execute/branch.sv"
 `include "pipeline/muxword.sv"
 `include "pipeline/execute/signext32.sv"
 `else
@@ -16,7 +17,9 @@ module execute
     import pipes::*;(
     input decode_data_t dataD,
     input fwd_data_t fwda, fwdb,
-    output execute_data_t dataE
+    output execute_data_t dataE,
+    output u1 branch_enable,
+    output word_t branch_target
 );
 
     control_t ctl;
@@ -60,7 +63,14 @@ module execute
         .src1,
         .src2
     );
-    
+
+    branch branch (
+        .branchfunc(ctl.branchfunc),
+        .branch_enable,
+        .src1,
+        .src2
+    );
+
     signext32 signext32 (
         .imm32(aluout[31:0]),
         .imm(aluoutw)
@@ -81,6 +91,7 @@ module execute
     assign dataE.dst = dataD.dst;
     assign dataE.ctl = ctl;
     assign dataE.memwd = src2_reg;
+    assign branch_target = branch_enable ? aluout : 0;
 
 endmodule
 

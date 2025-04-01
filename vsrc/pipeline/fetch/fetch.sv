@@ -33,7 +33,6 @@ module fetch
     assign dataF.valid = '1;
     assign dataF.raw_instr = raw_instr;
     assign dataF.pc = pc;
-
     assign dataF.ctl = ctl;
     assign dataF.ra1 = ra1;
     assign dataF.ra2 = ra2;
