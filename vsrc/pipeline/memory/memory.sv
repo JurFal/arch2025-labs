@@ -100,7 +100,7 @@ module memory
         .muxin1(rd),
         .muxout(writedata1)
     );
-    assign dataM.writedata = (dataE.dst != '0) ? writedata1 : '0;
+    assign dataM.writedata = (dataE.ctl.regwrite & dataE.dst != '0) ? writedata1 : '0;
     assign dataM.memaddr = (dataE.ctl.memread | dataE.ctl.memwrite) ? dataE.aluout : '0;
 
 endmodule

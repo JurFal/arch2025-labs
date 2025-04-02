@@ -19,7 +19,7 @@ module decode
     input creg_addr_t wa,
     input word_t wd,
     output u64 REG[31:0],
-    input u1 stalllu
+    input u1 stall
 );
 
     word_t rd1, rd2;
@@ -38,8 +38,8 @@ module decode
 
     assign dataD.valid = '1;
     assign dataD.pc = dataF.pc;
-    assign dataD.raw_instr = ~stalllu ? dataF.raw_instr : '0;
-    assign dataD.ctl = ~stalllu ? dataF.ctl : '0;
+    assign dataD.raw_instr = ~stall ? dataF.raw_instr : '0;
+    assign dataD.ctl = ~stall ? dataF.ctl : '0;
     assign dataD.ra1 = dataF.ra1;
     assign dataD.ra2 = dataF.ra2;
     assign dataD.dst = dataF.dst;

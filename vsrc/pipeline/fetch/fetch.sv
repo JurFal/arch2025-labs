@@ -15,7 +15,8 @@ module fetch
 
     output fetch_data_t dataF,
     input u32 raw_instr,
-    input u64 pc
+    input u64 pc,
+    input u1 stall
 );
 
     creg_addr_t ra1, ra2, rdst;
@@ -31,9 +32,9 @@ module fetch
         .imm
     );
     assign dataF.valid = '1;
-    assign dataF.raw_instr = raw_instr;
+    assign dataF.raw_instr = ~stall ? raw_instr : 0;
     assign dataF.pc = pc;
-    assign dataF.ctl = ctl;
+    assign dataF.ctl = ~stall ? ctl : 0;
     assign dataF.ra1 = ra1;
     assign dataF.ra2 = ra2;
     assign dataF.dst = rdst;

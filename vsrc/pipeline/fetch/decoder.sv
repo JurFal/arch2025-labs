@@ -26,11 +26,11 @@ module decoder
     wire [6:0] f7 = raw_instr[31:25];
     wire [5:0] f6 = raw_instr[31:26];
 
-    u1 immtype, shamttype;
+    u1 immtype, shamttype, needlshift;
     u6 shamt;
     u12 imm12;
     u20 imm20;
-    word_t imm12ext, imm20ext, immext, shamtext;
+    word_t imm12ext, imm20ext, immext, shamtext, imm_before_shift;
 
     always_comb begin
         ctl = '0;
@@ -42,6 +42,7 @@ module decoder
         imm20 = '0;
         immtype = '0;
         shamttype = '0;
+        needlshift = '0;
         unique case (op)
             OP_R_OPS: begin
                 ctl.regwrite = 1'b1;
@@ -338,9 +339,9 @@ module decoder
                 endcase
             end
             OP_B_BRH: begin
+                needlshift = 1'b1;
                 ctl.immsrc = 1'b1;
                 ctl.pcsrc = 1'b1;
-                ctl.regwrite = 1'b1;
                 ctl.alufunc = ALU_ADD;
                 ra1 = raw_instr[19:15];
                 ra2 = raw_instr[24:20];
@@ -374,10 +375,10 @@ module decoder
                         ctl.branchfunc = BRH_NEV;
                     end
                 endcase
-                rdst = raw_instr[11:7];
                 imm12 = {raw_instr[31], raw_instr[7], raw_instr[30:25], raw_instr[11:8]};
             end
             OP_J_JAL: begin
+                needlshift = 1'b1;
                 immtype = 1'b1;
                 ctl.immsrc = 1'b1;
                 ctl.pcsrc = 1'b1;
@@ -471,8 +472,10 @@ module decoder
         .choose(shamttype),
         .muxin0(immext),
         .muxin1(shamtext),
-        .muxout(imm)
+        .muxout(imm_before_shift)
     );
+
+    assign imm = (needlshift) ? (imm_before_shift << 1'b1) : imm_before_shift;
 
 endmodule
 

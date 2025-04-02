@@ -91,14 +91,15 @@ module core
 	assign bubbleF = branch_enable_d & (pc != branch_target_d);
 
 	always_ff @(posedge clk) begin
-		if (reset | bubbleF) dataF <= '0;
+		if (reset) dataF <= '0;
 		else if(flushF) dataF <= dataF_nxt;
 	end
 
 	fetch fetch (
 		.dataF(dataF_nxt),
 		.raw_instr,
-		.pc
+		.pc,
+		.stall(bubbleF)
 	);
 	
 	muxword pcselect (
@@ -114,7 +115,7 @@ module core
 	assign bubbleD = branch_enable_d & (pc != branch_target_d);
 
 	always_ff @(posedge clk) begin
-		if (reset | bubbleD) dataD <= '0;
+		if (reset) dataD <= '0;
 		else if (flushD) dataD <= dataD_nxt;
 	end
 
@@ -130,15 +131,16 @@ module core
 		.wen(dataW_nxt.ctl.regwrite),
 		.wd(dataW_nxt.writedata),
 		.REG,
-		.stalllu
+		.stall(stalllu | bubbleF)
 	);
 
-	u1 flushE;
+	u1 flushE, bubbleE;
 
 	assign flushE = (dataD.valid & !stallmem & !stallpc) | forceflush;
+	assign bubbleE = '0;
 
 	always_ff @(posedge clk) begin
-		if (reset) dataE <= '0;
+		if (reset | bubbleE) dataE <= '0;
 		else if (flushE) dataE <= dataE_nxt;
 	end
 

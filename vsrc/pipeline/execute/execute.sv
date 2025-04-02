@@ -67,8 +67,8 @@ module execute
     branch branch (
         .branchfunc(ctl.branchfunc),
         .branch_enable,
-        .src1,
-        .src2
+        .src1(src1_reg),
+        .src2(src2_reg)
     );
 
     signext32 signext32 (
@@ -83,13 +83,13 @@ module execute
         .muxout(dataE.aluout)
     );
 
-    assign dataE.valid = '1;
+    assign dataE.valid = dataD.valid;
     assign dataE.pc = dataD.pc;
-    assign dataE.raw_instr = dataD.raw_instr;
+    assign dataE.raw_instr = dataD.valid ? dataD.raw_instr : '0;
     assign dataE.ra1 = dataD.ra1;
     assign dataE.ra2 = dataD.ra2;
     assign dataE.dst = dataD.dst;
-    assign dataE.ctl = ctl;
+    assign dataE.ctl = dataD.valid ? ctl : '0;
     assign dataE.memwd = src2_reg;
     assign branch_target = branch_enable ? aluout : 0;
 
