@@ -27,18 +27,17 @@ module core
 	input logic trint, swint, exint
 );
 	/* TODO: Add your pipeline here. */	
-	word_t pc, pc_nxt, branch_target;
+	word_t pc, pc_nxt, branch_target, branch_target_d;
 
-	word_t next_reg[31:0];
+	word_t REG[31:0];
 
 	u1 stallpc;
 	u1 stalllu;
 	u1 stallmem, stallmem_d;
-	u1 branch_enable;
+	u1 branch_enable, branch_enable_d;
 	u1 forceflush;
 
 	assign stallpc = ireq.valid & ~iresp.data_ok;
-    //assign stallmem = dreq.valid & ~dresp.data_ok;
 	assign stalllu = dataD.ctl.memread & (dataF.ra1 == dataD.dst | dataF.ra2 == dataD.dst);
 
 	always_ff @(posedge clk) begin
@@ -46,6 +45,20 @@ module core
 			stallmem_d <= '0;
 		end else begin
 			stallmem_d <= stallmem;
+		end
+	end
+	always_ff @(posedge clk) begin
+		if(reset) begin
+			branch_target_d <= '0;
+		end else begin
+			branch_target_d <= branch_target;
+		end
+	end
+	always_ff @(posedge clk) begin
+		if(reset) begin
+			branch_enable_d <= '0;
+		end else begin
+			branch_enable_d <= branch_enable;
 		end
 	end
 	assign forceflush = !stallmem & stallmem_d;
@@ -75,7 +88,7 @@ module core
 	u1 flushF, bubbleF;
 
 	assign flushF = (iresp.data_ok & !stallmem & !stallpc & !stalllu) | forceflush;
-	assign bubbleF = branch_enable & (pc != branch_target);
+	assign bubbleF = branch_enable_d & (pc != branch_target_d);
 
 	always_ff @(posedge clk) begin
 		if (reset | bubbleF) dataF <= '0;
@@ -89,16 +102,16 @@ module core
 	);
 	
 	muxword pcselect (
-		.choose(branch_enable),
+		.choose(branch_enable_d),
 		.muxin0(pc + 4),
-		.muxin1(branch_target),
+		.muxin1(branch_target_d),
 		.muxout(pc_nxt)
 	);
 
 	u1 flushD, bubbleD;
 
 	assign flushD = (dataF.valid & !stallmem & !stallpc) | forceflush;
-	assign bubbleD = branch_enable & (pc != branch_target);
+	assign bubbleD = branch_enable_d & (pc != branch_target_d);
 
 	always_ff @(posedge clk) begin
 		if (reset | bubbleD) dataD <= '0;
@@ -116,7 +129,7 @@ module core
 		.wa(dataW_nxt.dst),
 		.wen(dataW_nxt.ctl.regwrite),
 		.wd(dataW_nxt.writedata),
-		.next_reg,
+		.REG,
 		.stalllu
 	);
 
@@ -204,38 +217,38 @@ module core
 	DifftestArchIntRegState DifftestArchIntRegState (
 		.clock              (clk),
 		.coreid             (0),
-		.gpr_0              (next_reg[0]),
-		.gpr_1              (next_reg[1]),
-		.gpr_2              (next_reg[2]),
-		.gpr_3              (next_reg[3]),
-		.gpr_4              (next_reg[4]),
-		.gpr_5              (next_reg[5]),
-		.gpr_6              (next_reg[6]),
-		.gpr_7              (next_reg[7]),
-		.gpr_8              (next_reg[8]),
-		.gpr_9              (next_reg[9]),
-		.gpr_10             (next_reg[10]),
-		.gpr_11             (next_reg[11]),
-		.gpr_12             (next_reg[12]),
-		.gpr_13             (next_reg[13]),
-		.gpr_14             (next_reg[14]),
-		.gpr_15             (next_reg[15]),
-		.gpr_16             (next_reg[16]),
-		.gpr_17             (next_reg[17]),
-		.gpr_18             (next_reg[18]),
-		.gpr_19             (next_reg[19]),
-		.gpr_20             (next_reg[20]),
-		.gpr_21             (next_reg[21]),
-		.gpr_22             (next_reg[22]),
-		.gpr_23             (next_reg[23]),
-		.gpr_24             (next_reg[24]),
-		.gpr_25             (next_reg[25]),
-		.gpr_26             (next_reg[26]),
-		.gpr_27             (next_reg[27]),
-		.gpr_28             (next_reg[28]),
-		.gpr_29             (next_reg[29]),
-		.gpr_30             (next_reg[30]),
-		.gpr_31             (next_reg[31])
+		.gpr_0              (REG[0]),
+		.gpr_1              (REG[1]),
+		.gpr_2              (REG[2]),
+		.gpr_3              (REG[3]),
+		.gpr_4              (REG[4]),
+		.gpr_5              (REG[5]),
+		.gpr_6              (REG[6]),
+		.gpr_7              (REG[7]),
+		.gpr_8              (REG[8]),
+		.gpr_9              (REG[9]),
+		.gpr_10             (REG[10]),
+		.gpr_11             (REG[11]),
+		.gpr_12             (REG[12]),
+		.gpr_13             (REG[13]),
+		.gpr_14             (REG[14]),
+		.gpr_15             (REG[15]),
+		.gpr_16             (REG[16]),
+		.gpr_17             (REG[17]),
+		.gpr_18             (REG[18]),
+		.gpr_19             (REG[19]),
+		.gpr_20             (REG[20]),
+		.gpr_21             (REG[21]),
+		.gpr_22             (REG[22]),
+		.gpr_23             (REG[23]),
+		.gpr_24             (REG[24]),
+		.gpr_25             (REG[25]),
+		.gpr_26             (REG[26]),
+		.gpr_27             (REG[27]),
+		.gpr_28             (REG[28]),
+		.gpr_29             (REG[29]),
+		.gpr_30             (REG[30]),
+		.gpr_31             (REG[31])
 	);
 
     DifftestTrapEvent DifftestTrapEvent(

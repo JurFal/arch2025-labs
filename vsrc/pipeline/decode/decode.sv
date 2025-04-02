@@ -18,7 +18,7 @@ module decode
     input u1 wen,
     input creg_addr_t wa,
     input word_t wd,
-    output u64 next_reg[31:0],
+    output u64 REG[31:0],
     input u1 stalllu
 );
 
@@ -33,7 +33,7 @@ module decode
 		.wen,
 		.wa,
 		.wd,
-        .REG(next_reg)
+        .REG
 	);
 
     assign dataD.valid = '1;
