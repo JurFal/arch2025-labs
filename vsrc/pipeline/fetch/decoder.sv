@@ -132,10 +132,12 @@ module decoder
                         end
                     end
                     F3_OP_SLE: begin
+                        ctl.shiftw = 1'b1;
                         ctl.op = SLLW;
                         ctl.alufunc = ALU_SLL;
                     end
                     F3_OP_SRG: begin
+                        ctl.shiftw = 1'b1;
                         if (f7 == 7'b0000000) begin
                             ctl.op = SRLW;
                             ctl.alufunc = ALU_SRL;
@@ -241,6 +243,7 @@ module decoder
                         ctl.alufunc = ALU_ADD;
                     end
                     F3_OP_SLE: begin
+                        ctl.shiftw = 1'b1;
                         shamttype = '1;
                         if (f6 == 6'b000000) begin
                             shamt = raw_instr[25:20];
@@ -253,6 +256,7 @@ module decoder
                         end
                     end
                     F3_OP_SRG: begin
+                        ctl.shiftw = 1'b1;
                         shamttype = '1;
                         if (f6 == 6'b000000) begin
                             shamt = raw_instr[25:20];

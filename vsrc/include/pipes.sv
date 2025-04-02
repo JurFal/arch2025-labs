@@ -91,7 +91,7 @@ typedef struct packed {
 	opcode_t op;
 	alufunc_t alufunc;
 	branchfunc_t branchfunc;
-	u1 zeroextwb, regwrite, immsrc, pcsrc, aluext,
+	u1 zeroextwb, regwrite, immsrc, pcsrc, shiftw, aluext,
 	   memwrite, memread;
 	msize_t memsize;
 } control_t;

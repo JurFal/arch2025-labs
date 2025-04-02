@@ -25,8 +25,8 @@ module execute
     control_t ctl;
     assign ctl = dataD.ctl;
     
-    word_t src1_reg, src1;
-    word_t src2_reg, src2;
+    word_t src1_reg, src1_orig, src1_32, src1;
+    word_t src2_reg, src2_orig, src2;
     word_t aluout, aluoutw;
     
     muxword muxword_fwdsrca (
@@ -47,14 +47,33 @@ module execute
         .choose(ctl.pcsrc),
         .muxin0(src1_reg),
         .muxin1(dataD.pc),
-        .muxout(src1)
+        .muxout(src1_orig)
     );
 
     muxword muxword_alusrcb (
         .choose(ctl.immsrc),
         .muxin0(src2_reg),
         .muxin1(dataD.imm),
-        .muxout(src2)
+        .muxout(src2_orig)
+    );
+
+    signext32 signext32 (
+        .imm32(src1_orig[31:0]),
+        .imm(src1_32)
+    );
+
+    muxword muxword_exsrca (
+        .choose(ctl.shiftw),
+        .muxin0(src1_orig),
+        .muxin1(src1_32),
+        .muxout(src1)
+    );
+
+    muxword muxword_exsrcb (
+        .choose(ctl.shiftw),
+        .muxin0(src2_orig),
+        .muxin1({59'b0, src2_orig[4:0]}),
+        .muxout(src1)
     );
 
     alu alu (
