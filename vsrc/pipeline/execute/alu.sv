@@ -25,9 +25,12 @@ module alu
             ALU_OR: aluout = src1 | src2;
             ALU_XOR: aluout = src1 ^ src2;
             ALU_SLL: aluout = src1 << src2[5:0];
+            ALU_SLLW: aluout = {32'b0, src1[31:0] << src2[4:0]};
             ALU_SRL: aluout = src1 >> src2[5:0];
-            ALU_SRA: aluout = src1 >>> src2[5:0];
-            ALU_SLT: aluout = (src1 < src2) ? 1 : 0;
+            ALU_SRLW: aluout = {32'b0, src1[31:0] >> src2[4:0]};
+            ALU_SRA: aluout = $signed(src1) >>> src2[5:0];
+            ALU_SRAW: aluout = {32'b0, $signed(src1[31:0]) >>> src2[4:0]};
+            ALU_SLT: aluout = ($signed(src1) < $signed(src2)) ? 1 : 0;
             ALU_SLTU: aluout = ($unsigned(src1) < $unsigned(src2)) ? 1 : 0;
             default: aluout = '0;
         endcase

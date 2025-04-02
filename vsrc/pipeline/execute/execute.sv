@@ -27,7 +27,7 @@ module execute
     
     word_t src1_reg, src1_orig, src1_32, src1;
     word_t src2_reg, src2_orig, src2;
-    word_t aluout, aluoutw;
+    word_t aluout, aluoutw, aluoute, aluoutj;
     
     muxword muxword_fwdsrca (
         .choose(fwda.enable),
@@ -47,33 +47,14 @@ module execute
         .choose(ctl.pcsrc),
         .muxin0(src1_reg),
         .muxin1(dataD.pc),
-        .muxout(src1_orig)
+        .muxout(src1)
     );
 
     muxword muxword_alusrcb (
         .choose(ctl.immsrc),
         .muxin0(src2_reg),
         .muxin1(dataD.imm),
-        .muxout(src2_orig)
-    );
-
-    signext32 signext32 (
-        .imm32(src1_orig[31:0]),
-        .imm(src1_32)
-    );
-
-    muxword muxword_exsrca (
-        .choose(ctl.shiftw),
-        .muxin0(src1_orig),
-        .muxin1(src1_32),
-        .muxout(src1)
-    );
-
-    muxword muxword_exsrcb (
-        .choose(ctl.shiftw),
-        .muxin0(src2_orig),
-        .muxin1({59'b0, src2_orig[4:0]}),
-        .muxout(src1)
+        .muxout(src2)
     );
 
     alu alu (
@@ -81,13 +62,6 @@ module execute
         .aluout,
         .src1,
         .src2
-    );
-
-    branch branch (
-        .branchfunc(ctl.branchfunc),
-        .branch_enable,
-        .src1(src1_reg),
-        .src2(src2_reg)
     );
 
     signext32 signext32 (
@@ -99,9 +73,26 @@ module execute
         .choose(ctl.aluext),
         .muxin0(aluout),
         .muxin1(aluoutw),
-        .muxout(dataE.aluout)
+        .muxout(aluoute)
     );
 
+    muxword muxword_aluoutj (
+        .choose(ctl.jalr),
+        .muxin0(aluout),
+        .muxin1(aluout & (64'hfffffffffffffffe)),
+        .muxout(aluoutj)
+    );
+
+    branch branch (
+        .branchfunc(ctl.branchfunc),
+        .branch_enable,
+        .src1(src1_reg),
+        .src2(src2_reg),
+        .aluoutj,
+        .pc(dataD.pc + 4)
+    );
+
+    assign dataE.aluout = (ctl.jal | ctl.jalr) ? (dataD.pc + 4) : aluoute;
     assign dataE.valid = dataD.valid;
     assign dataE.pc = dataD.pc;
     assign dataE.raw_instr = dataD.valid ? dataD.raw_instr : '0;
@@ -110,7 +101,7 @@ module execute
     assign dataE.dst = dataD.dst;
     assign dataE.ctl = dataD.valid ? ctl : '0;
     assign dataE.memwd = src2_reg;
-    assign branch_target = branch_enable ? aluout : 0;
+    assign branch_target = branch_enable ? aluoutj : 0;
 
 endmodule
 

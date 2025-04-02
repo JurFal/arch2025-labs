@@ -26,11 +26,11 @@ module decoder
     wire [6:0] f7 = raw_instr[31:25];
     wire [5:0] f6 = raw_instr[31:26];
 
-    u1 immtype, shamttype, needlshift;
+    u1 immtype, shamttype, branch, jal;
     u6 shamt;
     u12 imm12;
     u20 imm20;
-    word_t imm12ext, imm20ext, immext, shamtext, imm_before_shift;
+    word_t imm12ext, imm20ext, immj, immext, shamtext, imm_before_shift, immout;
 
     always_comb begin
         ctl = '0;
@@ -42,7 +42,7 @@ module decoder
         imm20 = '0;
         immtype = '0;
         shamttype = '0;
-        needlshift = '0;
+        branch = '0;
         unique case (op)
             OP_R_OPS: begin
                 ctl.regwrite = 1'b1;
@@ -132,19 +132,17 @@ module decoder
                         end
                     end
                     F3_OP_SLE: begin
-                        ctl.shiftw = 1'b1;
                         ctl.op = SLLW;
-                        ctl.alufunc = ALU_SLL;
+                        ctl.alufunc = ALU_SLLW;
                     end
                     F3_OP_SRG: begin
-                        ctl.shiftw = 1'b1;
                         if (f7 == 7'b0000000) begin
                             ctl.op = SRLW;
-                            ctl.alufunc = ALU_SRL;
+                            ctl.alufunc = ALU_SRLW;
                         end
                         else if (f7 == 7'b0100000) begin
                             ctl.op = SRAW;
-                            ctl.alufunc = ALU_SRA;
+                            ctl.alufunc = ALU_SRAW;
                         end
                         else begin
                             ctl.op = UNKNOWN;
@@ -243,12 +241,11 @@ module decoder
                         ctl.alufunc = ALU_ADD;
                     end
                     F3_OP_SLE: begin
-                        ctl.shiftw = 1'b1;
                         shamttype = '1;
                         if (f6 == 6'b000000) begin
                             shamt = raw_instr[25:20];
                             ctl.op = SLLIW;
-                            ctl.alufunc = ALU_SLL;
+                            ctl.alufunc = ALU_SLLW;
                         end
                         else begin
                             ctl.op = UNKNOWN;
@@ -256,17 +253,16 @@ module decoder
                         end
                     end
                     F3_OP_SRG: begin
-                        ctl.shiftw = 1'b1;
                         shamttype = '1;
                         if (f6 == 6'b000000) begin
                             shamt = raw_instr[25:20];
                             ctl.op = SRLIW;
-                            ctl.alufunc = ALU_SRL;
+                            ctl.alufunc = ALU_SRLW;
                         end
                         else if (f6 == 6'b010000) begin
                             shamt = raw_instr[25:20];
                             ctl.op = SRAIW;
-                            ctl.alufunc = ALU_SRA;
+                            ctl.alufunc = ALU_SRAW;
                         end
                         else begin
                             ctl.op = UNKNOWN;
@@ -326,6 +322,7 @@ module decoder
                 endcase
             end
             OP_I_JLR: begin
+                ctl.jalr = 1'b1;
                 ctl.immsrc = 1'b1;
                 ctl.regwrite = 1'b1;
                 ctl.alufunc = ALU_ADD;
@@ -343,7 +340,7 @@ module decoder
                 endcase
             end
             OP_B_BRH: begin
-                needlshift = 1'b1;
+                branch = 1'b1;
                 ctl.immsrc = 1'b1;
                 ctl.pcsrc = 1'b1;
                 ctl.alufunc = ALU_ADD;
@@ -382,15 +379,15 @@ module decoder
                 imm12 = {raw_instr[31], raw_instr[7], raw_instr[30:25], raw_instr[11:8]};
             end
             OP_J_JAL: begin
-                needlshift = 1'b1;
                 immtype = 1'b1;
+                ctl.jal = 1'b1;
                 ctl.immsrc = 1'b1;
                 ctl.pcsrc = 1'b1;
                 ctl.regwrite = 1'b1;
                 ctl.alufunc = ALU_ADD;
                 ctl.branchfunc = BRH_AWS;
                 rdst = raw_instr[11:7];
-                imm20 = {raw_instr[31], raw_instr[19:12], raw_instr[20], raw_instr[30:21]};
+                immj = {{44{raw_instr[31]}}, raw_instr[19:12], raw_instr[20], raw_instr[30:21], 1'b0};
                 ctl.op = JAL;
             end
             OP_S_SIM: begin
@@ -436,9 +433,9 @@ module decoder
                 immtype = 1'b1;
                 ctl.regwrite = 1'b1;
                 ctl.immsrc = 1'b1;
+                ctl.pcsrc = 1'b1;
                 ctl.alufunc = ALU_ADD;
                 ctl.branchfunc = BRH_NEV;
-                ctl.pcsrc = 1'b1;
                 rdst = raw_instr[11:7];
                 imm20 = raw_instr[31:12];
             end
@@ -464,7 +461,7 @@ module decoder
         .imm20,
         .imm20ext
     );
-    
+
     muxword immmux (
         .choose(immtype),
         .muxin0(imm12ext),
@@ -479,7 +476,9 @@ module decoder
         .muxout(imm_before_shift)
     );
 
-    assign imm = (needlshift) ? (imm_before_shift << 1'b1) : imm_before_shift;
+    assign immout = (branch) ? (imm_before_shift << 1'b1) : imm_before_shift;
+    assign imm = (ctl.jal) ? immj : immout;
+
 
 endmodule
 

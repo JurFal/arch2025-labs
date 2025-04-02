@@ -77,7 +77,9 @@ typedef enum logic [5:0] {
 typedef enum logic [4:0] {
 	ALU_ADD, ALU_SUB, ALU_XOR, ALU_OR, ALU_AND,
 	ALU_SLT, ALU_SLTU,
-	ALU_SLL, ALU_SRL, ALU_SRA
+	ALU_SLL, ALU_SLLW,
+	ALU_SRL, ALU_SRLW,
+	ALU_SRA, ALU_SRAW
 } alufunc_t;
 
 typedef enum logic [3:0] {
@@ -91,8 +93,8 @@ typedef struct packed {
 	opcode_t op;
 	alufunc_t alufunc;
 	branchfunc_t branchfunc;
-	u1 zeroextwb, regwrite, immsrc, pcsrc, shiftw, aluext,
-	   memwrite, memread;
+	u1 zeroextwb, regwrite, immsrc, pcsrc, aluext,
+	   memwrite, memread, jal, jalr;
 	msize_t memsize;
 } control_t;
 

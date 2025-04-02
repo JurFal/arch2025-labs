@@ -66,10 +66,10 @@ module core
 	always_ff @(posedge clk) begin
 		if(reset) begin
 			pc <= 64'h8000_0000;
-		end else if(stallpc | stallmem | stalllu) begin
-			pc <= pc;
-		end else begin
+		end else if((forceflush & branch_enable_d) | !(stallpc | stallmem | stalllu)) begin
 			pc <= pc_nxt;
+		end else begin
+			pc <= pc;
 		end
 	end
 
@@ -88,7 +88,7 @@ module core
 	u1 flushF, bubbleF;
 
 	assign flushF = (iresp.data_ok & !stallmem & !stallpc & !stalllu) | forceflush;
-	assign bubbleF = branch_enable_d & (pc != branch_target_d);
+	assign bubbleF = branch_enable_d & (dataF.pc != branch_target_d);
 
 	always_ff @(posedge clk) begin
 		if (reset) dataF <= '0;
