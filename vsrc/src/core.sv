@@ -87,7 +87,7 @@ module core
 
 	u1 flushF, bubbleF;
 
-	assign flushF = (iresp.data_ok & !stallmem & !stallpc & !stalllu) | forceflush;
+	assign flushF = (iresp.data_ok & !stallmem & !stallpc & !stalllu) | (!stalllu & forceflush);
 	assign bubbleF = branch_enable_d & (dataF.pc != branch_target_d);
 
 	always_ff @(posedge clk) begin
