@@ -16,44 +16,42 @@
 
 能够通过lab3的所有测试，显示“HIT GOOD TRAP”。
 
-* 测试结果![lab3结果](result-1.png)
-* 彩蛋：鸣谢交学长![TanYifan](result-2.png)
+* 测试结果![lab3结果](result.png)
+* 彩蛋：鸣谢交学长![TanYifan](yifan.png)
 
 ## 文件结构变化
 
 `/pipeline`文件夹内文件结构有变化：
 
-* `fwdmux.sv`：新建转发用模块，调用`fwd.sv`判断能否转发后，根据两种转发类型结果确定两个转发值；
-* `fwd.sv`：新建转发用模块，判断给定的数据dst和src能否满足转发条件；
-* `/decode/signext20.sv`：新增扩展模块，为lui指令（和auipc指令）符号扩展长立即数；
-* `/fetch/decoder.sv`：因为load-use阻塞需要，decoder提前至fetch阶段，从`/decode/decoder.sv`移动。
+* 将`/decode/`中与`/fetch/decoder.sv`有关的模块迁移到`/fetch/`中；
+* `/fetch/shamtzeroext.sv`：新增扩展模块，为移位运算指令零扩展移位立即数，统一格式；
+* `/execute/branch.sv`：新增分支判断模块，判断是否满足跳转条件，实现与alu相似；
+* `/fetch/pcselect.sv`不再使用。
 
 此外，修改下列文件：
 
-* `/src/core.sv`：增添阻塞，调用转发模块（具体于下文介绍）；
-* `/include/pipes.sv`：重构解码类型格式，增添新增指令类型解码值，在控制信号中增加访存信号，添加转发专用类型；
-* `/pipeline/fetch/fetch.sv`：增添解码功能和相应格式；
-* `/pipeline/decode/decode.sv`：删去解码功能，仅保留寄存器功能，增添load-use阻塞的bubble；
-* `/pipeline/execute/execute.sv`：增添对接转发数据的译码器，传递写内存结果；
-* `/pipeline/memory/memory.sv`：增添访存过程（具体于下文介绍）；
-* `/pipeline/writeback/writeback.sv`：对接memory阶段，修改valid在接受空指令时为空以忽略bubble；
-* `/pipeline/regfile/regfile.sv`：修正输出寄存器状态为上一周期REG，与提交的上一周期指令dataW相符；
-* `/pipeline/decode/sigext12.sv`：修改变量名，适配lui扩展；
-* `/pipeline/execute/alu.sv`：（未使用）增添部分其他运算，已注释掉。
+* `/src/core.sv`：
+  * 更改pc类型，统一为word_t；
+  * 修正寄存器接口名称；
+  * 增添分支跳转用阻塞；
+  * 修复load-use阻塞；
+  * 按格式修正提交内容。
+* `/include/pipes.sv`：增添新增指令类型解码值，在控制信号中增加分支判断函数类型与跳转专用信号；
+* `/pipeline/fetch/fetch.sv`：更改添加气泡的功能实现，增添气泡接口；
+* `/pipeline/fetch/decoder.sv`：增添新增解码情况与立即数种类；
+* `/pipeline/decode/decode.sv`：更改添加气泡的功能实现，增添气泡接口；
+* `/pipeline/execute/execute.sv`：
+  * 增添调用分支判断的模块；
+  * 增添是否分支与分支目标的输出接口。
+* `/pipeline/execute/alu.sv`：修正了增添的部分其他运算，并启用；
+* `/pipeline/memory/memory.sv`：修正写寄存器值条件，仅regwrite为真时写入值；
+* `/pipeline/writeback/writeback.sv`：简化逻辑。
 
-## 转发设计
+## 移位及置位运算设计细节
 
-由于修改了difftest发射信号的周期，lab1测试无法通过，考虑课上讲述的转发设计。
-
-有两种转发需求：第一类转发是前一指令对后一指令，需将execute阶段的运算结果aluout转发至当前指令execute之前；第二类转发是前一指令对再后一指令，需将memory阶段确定的写入寄存器结果（可以是运算或读内存结果）writedata转发至当前指令execute之前。其中，第一类转发可以覆盖第二类转发。
-
-在转发时，需要满足的条件是：后指令源寄存器为前指令目的寄存器，且不为零寄存器；前指令有写寄存器的操作。由于存在阻塞bubble，在转发时还需要确认两条指令是否为因延迟导致的同一指令。
-
-根据转发性质选择接受哪一类转发，并把转发结果传入execute阶段。
-
-在execute阶段，判断是否有必要启用转发结果。由于转发结果来自寄存器，所以在部分指令中会被立即数或者pc覆盖。
-
-初步实现转发后，通过了lab1，后续修改后，通过了lab2。
+由于移位与置位运算中，w指令与一般指令差别较大，分别设计alu函数。
+需要截取相应位数并进行相应运算。
+运算时，需要特别标注是否为有符号数，采用systemverilog提供的`$signed()`和`$unsigned()`函数实现。
 
 ## 访存流程
 
