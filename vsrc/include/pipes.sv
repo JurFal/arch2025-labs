@@ -205,6 +205,42 @@ typedef struct packed {
 } satp_t;
 
 
+typedef struct packed {
+	word_t mhartid;
+
+    word_t mtvec;
+    word_t mepc;
+    word_t mcause;
+    word_t mie;
+    word_t mip;
+    word_t mtval;
+    word_t mscratch;
+
+    mstatus_t mstatus;
+
+	word_t mcycle;
+
+	word_t pmpaddr;
+	word_t pmpcfg;
+
+	word_t mideleg;
+	word_t medeleg;
+
+	satp_t satp;
+
+    word_t stvec;
+    word_t sepc;
+    word_t scause;
+    word_t sie;
+    word_t sip;
+    word_t stval;
+    word_t sscratch;
+
+    mstatus_t sstatus;
+
+
+} csr_t;
+
 endpackage
 
 `endif

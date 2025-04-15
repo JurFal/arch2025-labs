@@ -12,38 +12,50 @@ module csrfile
 	import common::*;
 	import pipes::*;(
 	input logic clk, reset,
-    input creg_addr_t ra1, ra2,
-    output word_t rd1, rd2,
+    input u12 csr_addr,
+    output word_t csr_out,
     input logic wen,
     input creg_addr_t wa,
     input word_t wd,
-	output u64 REG[31:0]
+	output csr_t CSR
 );
 
-u64 next_reg[31:0];
-//u64 REG[31:0]; // 主寄存器
-assign rd1 = REG[ra1]; // 读取依然从主寄存器中读取
-assign rd2 = REG[ra2];
+csr_t next_csr;
 
 always_comb begin
-	for (int i = 0; i < 32; i++) begin
-		if (wen && (i[4:0] == wa)) begin
-			next_reg[i[4:0]] = wd; // 用组合逻辑向next_reg写入
-		end else begin
-			next_reg[i[4:0]] = REG[i[4:0]]; // 复制其他没有写入的寄存器
-		end
-	end
+	case(csr_addr)
+		CSR_MHARTID: csr_out = next_csr.mhartid;
+		CSR_MIE: csr_out = next_csr.mie;
+		CSR_MIP: csr_out = next_csr.mip;
+		CSR_MTVEC: csr_out = next_csr.mtvec;
+		CSR_MSTATUS: csr_out = next_csr.mstatus;
+		CSR_MSCRATCH: csr_out = next_csr.mscratch;
+		CSR_MEPC: csr_out = next_csr.mepc;
+		CSR_SATP: csr_out = next_csr.satp;
+		CSR_MCAUSE: csr_out = next_csr.mcause;
+		CSR_MCYCLE: csr_out = next_csr.mcycle;
+		CSR_MTVAL: csr_out = next_csr.mtval;
+		CSR_PMPADDR0: csr_out = next_csr.pmpaddr;
+		CSR_PMPCFG0: csr_out = next_csr.pmpcfg;
+		CSR_MEDELEG: csr_out = next_csr.medeleg;
+		CSR_MIDELEG: csr_out = next_csr.mideleg;
+		CSR_STVEC: csr_out = next_csr.stvec;
+		CSR_SSTATUS: csr_out = next_csr.sstatus;
+		CSR_SSCRATCH: csr_out = next_csr.sscratch;
+		CSR_SEPC: csr_out = next_csr.sepc;
+		CSR_SCAUSE: csr_out = next_csr.scause;
+		CSR_STVAL: csr_out = next_csr.stval;
+		CSR_SIE: csr_out = next_csr.sie;
+		CSR_SIP: csr_out = next_csr.sip;
+		default: csr_out = '0;
+	endcase
 end
 
 always_ff @(posedge clk or posedge reset) begin
 	if (reset) begin
-		for (int i = 0; i < 32; i++) begin
-			REG[i[4:0]] <= 64'b0;
-		end
+		CSR <= '0;
 	end else begin
-		for (int i = 0; i < 32; i++) begin
-			REG[i[4:0]] <= next_reg[i[4:0]]; // 用next_reg在下一个周期更新主寄存器
-		end
+		CSR <= next_csr;
 	end
 end
 
