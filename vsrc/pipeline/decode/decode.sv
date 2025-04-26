@@ -4,7 +4,8 @@
 `ifdef VERILATOR
 `include "include/common.sv"
 `include "include/pipes.sv"
-`include "pipeline/regfile/regfile.sv"
+`include "pipeline/decode/regfile.sv"
+`include "pipeline/decode/csrfile.sv"
 `else
 
 `endif
@@ -18,7 +19,11 @@ module decode
     input u1 wen,
     input creg_addr_t wa,
     input word_t wd,
+    input u1 csr_wen,
+    input u12 csr_wa,
+    input word_t csr_wd,
     output u64 REG[31:0],
+    output csr_t CSR,
     input u1 stall
 );
 
@@ -34,6 +39,16 @@ module decode
 		.wa,
 		.wd,
         .REG
+	);
+
+	csrfile csrfile(
+		.clk, .reset,
+		.csr_ra(dataF.csraddr),
+        .csr_out(dataD.csrdata),
+		.csr_wen,
+		.csr_wa,
+		.csr_wd,
+        .CSR
 	);
 
     assign dataD.valid = '1;

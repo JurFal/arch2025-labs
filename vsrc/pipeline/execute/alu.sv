@@ -17,11 +17,14 @@ module alu
 );
     always_comb begin
         case(alufunc)
+            ALU_SRC1: aluout = src1;
+            ALU_SRC2: aluout = src2;
             ALU_ADD: aluout = src1 + src2;
             ALU_SUB: aluout = src1 - src2;
             //ALU_MUL: aluout = src1 * src2;
             //ALU_DIV: aluout = src1 / src2;
             ALU_AND: aluout = src1 & src2;
+            ALU_NAND: aluout = src1 & (~src2);
             ALU_OR: aluout = src1 | src2;
             ALU_XOR: aluout = src1 ^ src2;
             ALU_SLL: aluout = src1 << src2[5:0];

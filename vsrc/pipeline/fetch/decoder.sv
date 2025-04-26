@@ -4,9 +4,6 @@
 `ifdef VERILATOR
 `include "include/common.sv"
 `include "include/pipes.sv"
-`include "pipeline/fetch/signext12.sv"
-`include "pipeline/fetch/shamtzeroext.sv"
-`include "pipeline/fetch/signext20.sv"
 `include "pipeline/muxword.sv"
 `else
 
@@ -324,6 +321,45 @@ module decoder
                     end
                 endcase
             end
+            OP_I_CSR: begin
+                ctl.regwrite = 1'b1;
+                ctl.branchfunc = BRH_NEV;
+                ctl.csrsrc = 1'b1;
+                rdst = raw_instr[11:7];
+                case(f3)
+                    F3_CS_RWR: begin
+                        ctl.alufunc = ALU_SRC2;
+                        ra2 = raw_instr[19:15];
+                    end
+                    F3_CS_RSR: begin
+                        ctl.alufunc = ALU_OR;
+                        ra2 = raw_instr[19:15];
+                    end
+                    F3_CS_RCR: begin
+                        ctl.alufunc = ALU_NAND;
+                        ra2 = raw_instr[19:15];
+                    end
+                    F3_CS_RWI: begin
+                        ctl.alufunc = ALU_SRC2;
+                        ctl.immsrc = 1'b1;
+                        imm = {59'b0, raw_instr[19:15]};
+                    end
+                    F3_CS_RSI: begin
+                        ctl.alufunc = ALU_OR;
+                        ctl.immsrc = 1'b1;
+                        imm = {59'b0, raw_instr[19:15]};
+                    end
+                    F3_CS_RCI: begin
+                        ctl.alufunc = ALU_NAND;
+                        ctl.immsrc = 1'b1;
+                        imm = {59'b0, raw_instr[19:15]};
+                    end
+                    default: begin
+                        ctl.op = UNKNOWN;
+                    end
+                endcase
+                imm = {{32{raw_instr[31]}}, raw_instr[31:12], 12'b0};
+            end
             OP_B_BRH: begin                
                 ctl.immsrc = 1'b1;
                 ctl.pcsrc = 1'b1;
@@ -420,7 +456,6 @@ module decoder
                 rdst = raw_instr[11:7];
                 imm = {{32{raw_instr[31]}}, raw_instr[31:12], 12'b0};
             end
-            
             default: begin
                 
             end

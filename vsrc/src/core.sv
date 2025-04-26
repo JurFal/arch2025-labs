@@ -4,12 +4,10 @@
 `include "include/common.sv"
 `include "include/pipes.sv"
 `include "pipeline/fetch/fetch.sv"
-`include "pipeline/fetch/pcselect.sv"
 `include "pipeline/decode/decode.sv"
 `include "pipeline/execute/execute.sv"
 `include "pipeline/memory/memory.sv"
 `include "pipeline/writeback/writeback.sv"
-`include "pipeline/regfile/regfile.sv"
 `include "pipeline/fwdmux.sv"
 
 `else
@@ -30,6 +28,7 @@ module core
 	word_t pc, pc_nxt, branch_target, branch_target_d;
 
 	word_t REG[31:0];
+	csr_t CSR;
 
 	u1 stallpc;
 	u1 stalllu;
@@ -130,7 +129,11 @@ module core
 		.wa(dataW_nxt.dst),
 		.wen(dataW_nxt.ctl.regwrite),
 		.wd(dataW_nxt.writedata),
+		.csr_wa(dataW_nxt.csraddr),
+		.csr_wen(dataW_nxt.ctl.csrsrc),
+		.csr_wd(dataW_nxt.csrdata),
 		.REG,
+		.CSR,
 		.stall(stalllu | bubbleF)
 	);
 
@@ -203,7 +206,7 @@ module core
 `ifdef VERILATOR
 	DifftestInstrCommit DifftestInstrCommit(
 		.clock              (clk),
-		.coreid             (0),
+		.coreid             (mhartid[7:0]),
 		.index              (0),
 		.valid              (dataW.valid),
 		.pc                 (dataW.pc),
@@ -218,7 +221,7 @@ module core
 
 	DifftestArchIntRegState DifftestArchIntRegState (
 		.clock              (clk),
-		.coreid             (0),
+		.coreid             (mhartid[7:0]),
 		.gpr_0              (REG[0]),
 		.gpr_1              (REG[1]),
 		.gpr_2              (REG[2]),
@@ -255,7 +258,7 @@ module core
 
     DifftestTrapEvent DifftestTrapEvent(
 		.clock              (clk),
-		.coreid             (0),
+		.coreid             (mhartid[7:0]),
 		.valid              (0),
 		.code               (0),
 		.pc                 (0),
@@ -265,25 +268,25 @@ module core
 
 	DifftestCSRState DifftestCSRState(
 		.clock              (clk),
-		.coreid             (0),
+		.coreid             (CSR.mhartid[7:0]),
 		.priviledgeMode     (3),
-		.mstatus            (0),
-		.sstatus            (0 /* mstatus & SSTATUS_MASK */),
-		.mepc               (0),
-		.sepc               (0),
-		.mtval              (0),
-		.stval              (0),
-		.mtvec              (0),
-		.stvec              (0),
-		.mcause             (0),
-		.scause             (0),
-		.satp               (0),
-		.mip                (0),
-		.mie                (0),
-		.mscratch           (0),
-		.sscratch           (0),
-		.mideleg            (0),
-		.medeleg            (0)
+		.mstatus            (CSR.mstatus & MSTATUS_MASK),
+		.sstatus            (CSR.mstatus & SSTATUS_MASK),
+		.mepc               (CSR.mepc),
+		.sepc               (CSR.sepc),
+		.mtval              (CSR.mtval),
+		.stval              (CSR.stval),
+		.mtvec              (CSR.mtvec & MTVEC_MASK),
+		.stvec              (CSR.stvec),
+		.mcause             (CSR.mcause),
+		.scause             (CSR.scause),
+		.satp               (CSR.satp),
+		.mip                (CSR.mip & MIP_MASK),
+		.mie                (CSR.mie),
+		.mscratch           (CSR.mscratch),
+		.sscratch           (CSR.sscratch),
+		.mideleg            (CSR.mideleg & MIDELEG_MASK),
+		.medeleg            (CSR.medeleg & MEDELEG_MASK)
 	);
 `endif
 

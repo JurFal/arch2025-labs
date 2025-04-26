@@ -25,6 +25,7 @@ module writeback
         dataW.ra2 = dataM.ra2;
         dataW.ctl = dataM.ctl;
         dataW.writedata = dataM.writedata;
+        dataW.csrdata = dataM.csrdata;
         dataW.memaddr = dataM.memaddr;
     end
 endmodule

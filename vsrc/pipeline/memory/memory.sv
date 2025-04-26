@@ -85,7 +85,7 @@ module memory
         end
     end
 
-    word_t writedata1;
+    word_t writedata1, writedata2;
 
     muxword muxword_rdext (
         .choose(dataE.ctl.zeroextwb),
@@ -100,7 +100,16 @@ module memory
         .muxin1(rd),
         .muxout(writedata1)
     );
-    assign dataM.writedata = (dataE.ctl.regwrite & dataE.dst != '0) ? writedata1 : '0;
+
+    muxword muxword_csrwritedata (
+        .choose(dataE.ctl.csrsrc),
+        .muxin0(dataE.csrdata),
+        .muxin1(writedata1),
+        .muxout(writedata2)
+    );
+
+    assign dataM.writedata = (dataE.ctl.regwrite & dataE.dst != '0) ? writedata2 : '0;
+    assign dataM.csrdata = (dataE.ctl.csrsrc) ? writedata1 : '0;
     assign dataM.memaddr = (dataE.ctl.memread | dataE.ctl.memwrite) ? dataE.aluout : '0;
 
 endmodule

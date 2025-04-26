@@ -98,6 +98,7 @@ module execute
     assign dataE.raw_instr = dataD.valid ? dataD.raw_instr : '0;
     assign dataE.ra1 = dataD.ra1;
     assign dataE.ra2 = dataD.ra2;
+    assign dataE.csrdata = dataD.csrdata;
     assign dataE.dst = dataD.dst;
     assign dataE.ctl = dataD.valid ? ctl : '0;
     assign dataE.memwd = src2_reg;
