@@ -25,9 +25,9 @@ module execute
     control_t ctl;
     assign ctl = dataD.ctl;
     
-    word_t src1_reg, src1_orig, src1_32, src1;
+    word_t src1_reg, src1_orig, src1_pc, src1;
     word_t src2_reg, src2_orig, src2;
-    word_t aluout, aluoutw, aluoute, aluoutj;
+    word_t aluout, aluoutw, aluoute, branch_target_j, branch_target_csr;
     
     muxword muxword_fwdsrca (
         .choose(fwda.enable),
@@ -43,10 +43,17 @@ module execute
         .muxout(src2_reg)
     );
 
-    muxword muxword_alusrca (
+    muxword muxword_alusrca_pc (
         .choose(ctl.pcsrc),
         .muxin0(src1_reg),
         .muxin1(dataD.pc),
+        .muxout(src1_pc)
+    );
+
+    muxword muxword_alusrca (
+        .choose(ctl.csrsrc),
+        .muxin0(src1_pc),
+        .muxin1(dataD.csrdata),
         .muxout(src1)
     );
 
@@ -76,11 +83,18 @@ module execute
         .muxout(aluoute)
     );
 
-    muxword muxword_aluoutj (
+    muxword muxword_branch_target_j (
         .choose(ctl.jalr),
         .muxin0(aluout),
         .muxin1(aluout & (64'hfffffffffffffffe)),
-        .muxout(aluoutj)
+        .muxout(branch_target_j)
+    );
+
+    muxword muxword_branch_target_csr (
+        .choose(ctl.csrsrc),
+        .muxin0(branch_target_j),
+        .muxin1(dataD.pc + 4),
+        .muxout(branch_target_csr)
     );
 
     branch branch (
@@ -88,8 +102,9 @@ module execute
         .branch_enable,
         .src1(src1_reg),
         .src2(src2_reg),
-        .aluoutj,
-        .pc(dataD.pc + 4)
+        .branch_target_csr,
+        .pc(dataD.pc + 4),
+        .is_csr(ctl.csrsrc)
     );
 
     assign dataE.aluout = (ctl.jal | ctl.jalr) ? (dataD.pc + 4) : aluoute;
@@ -102,7 +117,8 @@ module execute
     assign dataE.dst = dataD.dst;
     assign dataE.ctl = dataD.valid ? ctl : '0;
     assign dataE.memwd = src2_reg;
-    assign branch_target = branch_enable ? aluoutj : 0;
+    assign dataE.csraddr = dataD.csraddr;
+    assign branch_target = branch_enable ? branch_target_csr : 0;
 
 endmodule
 

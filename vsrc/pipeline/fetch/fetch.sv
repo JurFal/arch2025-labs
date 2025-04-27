@@ -22,6 +22,7 @@ module fetch
     creg_addr_t ra1, ra2, rdst;
     control_t ctl;
     word_t rd1, rd2, imm;
+    u12 csraddr;
 
     decoder decoder (
         .raw_instr,
@@ -29,7 +30,8 @@ module fetch
         .ra1,
         .ra2,
         .rdst,
-        .imm
+        .imm,
+        .csraddr
     );
     assign dataF.valid = '1;
     assign dataF.raw_instr = ~stall ? raw_instr : 0;
@@ -39,6 +41,7 @@ module fetch
     assign dataF.ra2 = ra2;
     assign dataF.dst = rdst;
     assign dataF.imm = imm;
+    assign dataF.csraddr = csraddr;
 
 endmodule
 

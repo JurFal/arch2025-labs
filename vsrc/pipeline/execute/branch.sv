@@ -13,10 +13,11 @@ module branch
     import pipes::*;(
     input branchfunc_t branchfunc,
     output u1 branch_enable,
-    input word_t src1, src2, pc, aluoutj
+    input word_t src1, src2, pc, branch_target_csr,
+    input u1 is_csr
 );
     always_comb begin
-        if(pc != aluoutj)
+        if(!is_csr)
             case(branchfunc)
                 BRH_NEV: branch_enable = '0;
                 BRH_AWS: branch_enable = 1'b1;
@@ -28,7 +29,7 @@ module branch
                 BRH_GOEU: branch_enable = ($unsigned(src1) >= $unsigned(src2));
                 default: branch_enable = '0;
             endcase
-        else branch_enable = '0;
+        else branch_enable = 1'b1;
     end
 
 endmodule

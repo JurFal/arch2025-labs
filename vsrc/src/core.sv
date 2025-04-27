@@ -37,7 +37,7 @@ module core
 	u1 forceflush;
 
 	assign stallpc = ireq.valid & ~iresp.data_ok;
-	assign stalllu = dataD.ctl.memread & (dataF.ra1 == dataD.dst | dataF.ra2 == dataD.dst);
+	assign stalllu = (dataD.ctl.memread | dataD.ctl.csrsrc) & (dataF.ra1 == dataD.dst | dataF.ra2 == dataD.dst) & (!branch_enable_d);
 
 	always_ff @(posedge clk) begin
 		if(reset) begin
@@ -84,10 +84,9 @@ module core
 	assign ireq.valid = '1;
 	assign ireq.addr = pc;
 
-	u1 flushF, bubbleF;
+	u1 flushF;
 
 	assign flushF = (iresp.data_ok & !stallmem & !stallpc & !stalllu) | (!stalllu & forceflush);
-	assign bubbleF = branch_enable_d & (dataF.pc != branch_target_d);
 
 	always_ff @(posedge clk) begin
 		if (reset) dataF <= '0;
@@ -98,7 +97,7 @@ module core
 		.dataF(dataF_nxt),
 		.raw_instr,
 		.pc,
-		.stall(bubbleF)
+		.stall(branch_enable_d)
 	);
 	
 	muxword pcselect (
@@ -108,10 +107,9 @@ module core
 		.muxout(pc_nxt)
 	);
 
-	u1 flushD, bubbleD;
+	u1 flushD;
 
 	assign flushD = (dataF.valid & !stallmem & !stallpc) | forceflush;
-	assign bubbleD = branch_enable_d & (pc != branch_target_d);
 
 	always_ff @(posedge clk) begin
 		if (reset) dataD <= '0;
@@ -134,16 +132,15 @@ module core
 		.csr_wd(dataW_nxt.csrdata),
 		.REG,
 		.CSR,
-		.stall(stalllu | bubbleF)
+		.stall(stalllu | branch_enable_d)
 	);
 
-	u1 flushE, bubbleE;
+	u1 flushE;
 
 	assign flushE = (dataD.valid & !stallmem & !stallpc) | forceflush;
-	assign bubbleE = '0;
 
 	always_ff @(posedge clk) begin
-		if (reset | bubbleE) dataE <= '0;
+		if (reset) dataE <= '0;
 		else if (flushE) dataE <= dataE_nxt;
 	end
 
@@ -206,7 +203,7 @@ module core
 `ifdef VERILATOR
 	DifftestInstrCommit DifftestInstrCommit(
 		.clock              (clk),
-		.coreid             (mhartid[7:0]),
+		.coreid             (CSR.mhartid[7:0]),
 		.index              (0),
 		.valid              (dataW.valid),
 		.pc                 (dataW.pc),
@@ -221,7 +218,7 @@ module core
 
 	DifftestArchIntRegState DifftestArchIntRegState (
 		.clock              (clk),
-		.coreid             (mhartid[7:0]),
+		.coreid             (CSR.mhartid[7:0]),
 		.gpr_0              (REG[0]),
 		.gpr_1              (REG[1]),
 		.gpr_2              (REG[2]),
@@ -258,7 +255,7 @@ module core
 
     DifftestTrapEvent DifftestTrapEvent(
 		.clock              (clk),
-		.coreid             (mhartid[7:0]),
+		.coreid             (CSR.mhartid[7:0]),
 		.valid              (0),
 		.code               (0),
 		.pc                 (0),

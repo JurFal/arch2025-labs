@@ -15,7 +15,8 @@ module decoder
     input u32 raw_instr,
     output control_t ctl,
     output creg_addr_t ra1, ra2, rdst,
-    output word_t imm
+    output word_t imm,
+    output u12 csraddr
 );
 
     wire [6:0] op = raw_instr[6:0];
@@ -326,6 +327,7 @@ module decoder
                 ctl.branchfunc = BRH_NEV;
                 ctl.csrsrc = 1'b1;
                 rdst = raw_instr[11:7];
+                csraddr = raw_instr[31:20];
                 case(f3)
                     F3_CS_RWR: begin
                         ctl.alufunc = ALU_SRC2;
@@ -358,7 +360,6 @@ module decoder
                         ctl.op = UNKNOWN;
                     end
                 endcase
-                imm = {{32{raw_instr[31]}}, raw_instr[31:12], 12'b0};
             end
             OP_B_BRH: begin                
                 ctl.immsrc = 1'b1;

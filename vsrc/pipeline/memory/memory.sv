@@ -103,14 +103,15 @@ module memory
 
     muxword muxword_csrwritedata (
         .choose(dataE.ctl.csrsrc),
-        .muxin0(dataE.csrdata),
-        .muxin1(writedata1),
+        .muxin0(writedata1),
+        .muxin1(dataE.csrdata),
         .muxout(writedata2)
     );
 
     assign dataM.writedata = (dataE.ctl.regwrite & dataE.dst != '0) ? writedata2 : '0;
     assign dataM.csrdata = (dataE.ctl.csrsrc) ? writedata1 : '0;
     assign dataM.memaddr = (dataE.ctl.memread | dataE.ctl.memwrite) ? dataE.aluout : '0;
+    assign dataM.csraddr = dataE.csraddr;
 
 endmodule
 

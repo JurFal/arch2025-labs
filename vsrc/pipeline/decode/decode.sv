@@ -59,6 +59,7 @@ module decode
     assign dataD.ra2 = dataF.ra2;
     assign dataD.dst = dataF.dst;
     assign dataD.imm = dataF.imm;
+    assign dataD.csraddr = dataF.csraddr;
 
     assign dataD.srca = rd1;
     assign dataD.srcb = rd2;
