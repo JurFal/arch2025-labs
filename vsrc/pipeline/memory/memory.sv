@@ -6,7 +6,6 @@
 `include "include/common.sv"
 `include "include/pipes.sv"
 `include "pipeline/muxword.sv"
-`include "pipeline/memory/mmu.sv"
 `else
 
 `endif
@@ -19,7 +18,6 @@ module memory
     output memory_data_t dataM,
     output dbus_req_t dreq,
     input dbus_resp_t dresp,
-    input csr_t CSR,
     output u1 stallmem
 );
 
@@ -68,53 +66,6 @@ module memory
         
     end
 
-    word_t physical_addr;
-    u1 page_fault, mmu_done;
-    dbus_req_t mmu_dreq;
-    // 在memory模块中添加MMU实例的连接
-    // 注意：这里只连接数据访存部分，指令访存将在core.sv中连接
-    mmu mmu_inst (
-        .clk(clk),
-        .reset(reset),
-        
-        // 数据访存接口
-        .d_vaddr(dataE.aluout),  // 使用ALU计算出的地址作为虚拟地址
-        .d_en(dataE.ctl.memread | dataE.ctl.memwrite),  // 内存读写时启用MMU
-        .d_is_write(dataE.ctl.memwrite),
-        .d_write_data(dataE.aluout),
-        .d_mem_size(dataE.ctl.memsize),
-        .d_paddr(physical_addr),  // 翻译后的物理地址
-        .d_miss(page_fault),      // 页错误信号
-        .d_done(mmu_done),        // MMU完成信号
-        
-        // 指令访存接口 - 在memory模块中不使用，设为0
-        .i_vaddr('0),
-        .i_en(1'b0),
-        .i_paddr(),
-        .i_miss(),
-        .i_done(),
-        
-        // CSR寄存器
-        .csr(CSR),
-        
-        // 连接到内存总线
-        .dreq(mmu_dreq),
-        .dresp
-    );
-
-    // 根据MMU状态决定是否发送内存请求
-    assign dreq = mmu_done ? mmu_dreq : '0;
-
-    // 处理页错误
-    /*always_comb begin
-        if (page_fault) begin
-            // 设置异常信息
-            dataM.excep.valid = 1'b1;
-            dataM.excep.code = dataE.ctl.memwrite ? EXCEP_STORE_PAGE_FAULT : EXCEP_LOAD_PAGE_FAULT;
-            dataM.excep.tval = dataE.alu_result;  // 保存导致异常的地址
-        end
-    end
-
     always_ff @(posedge clk) begin
         if(reset) dreq <= '0;
         else if((dresp.addr_ok & dresp.data_ok)) dreq <= '0;
@@ -133,7 +84,7 @@ module memory
                 endcase
             end
         end
-    end*/
+    end
 
     word_t writedata1, writedata2;
 

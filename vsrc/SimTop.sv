@@ -1,11 +1,14 @@
 `ifdef VERILATOR
 `include "include/common.sv"
+`include "include/pipes.sv"
 `include "src/core.sv"
 `include "util/IBusToCBus.sv"
 `include "util/DBusToCBus.sv"
 `include "util/CBusArbiter.sv"
 
-module SimTop import common::*;(
+module SimTop 
+  import common::*;
+  import pipes::*;(
   input         clock,
   input         reset,
   input  [63:0] io_logCtrl_log_begin,
@@ -29,9 +32,12 @@ module SimTop import common::*;(
     dbus_resp_t dresp;
     cbus_req_t  icreq,  dcreq;
     cbus_resp_t icresp, dcresp;
+    u2 priviledgeMode;
+    satp_t satp;
 
     core core(
-      .clk(clock), .reset, .ireq, .iresp, .dreq, .dresp, .trint, .swint, .exint
+      .clk(clock), .reset, .ireq, .iresp, .dreq, .dresp, .trint, .swint, .exint,
+      .priviledgeMode, .satp
     );
 
     IBusToCBus icvt(.*);

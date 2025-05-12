@@ -3,6 +3,7 @@
 
 `ifdef VERILATOR
 `include "include/common.sv"
+`include "include/pipes.sv"
 `include "src/core.sv"
 `include "util/IBusToCBus.sv"
 `include "util/DBusToCBus.sv"
@@ -10,7 +11,8 @@
 
 `endif
 module VTop 
-	import common::*;(
+	import common::*;
+    import pipes::*;(
 	input logic clk, reset,
 
 	output cbus_req_t  oreq,
@@ -24,6 +26,8 @@ module VTop
     dbus_resp_t dresp;
     cbus_req_t  icreq,  dcreq;
     cbus_resp_t icresp, dcresp;
+    u2 priviledgeMode;
+    satp_t satp;
 
     core core(.*);
     IBusToCBus icvt(.*);

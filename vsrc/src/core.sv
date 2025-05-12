@@ -22,7 +22,9 @@ module core
 	input  ibus_resp_t iresp,
 	output dbus_req_t  dreq,
 	input  dbus_resp_t dresp,
-	input logic trint, swint, exint
+	input logic trint, swint, exint,
+	output u2 priviledgeMode,
+	output satp_t satp
 );
 	/* TODO: Add your pipeline here. */	
 	word_t pc, pc_nxt, branch_target, branch_target_d;
@@ -36,55 +38,9 @@ module core
 	u1 branch_enable, branch_enable_d;
 	u1 forceflush;
 
-	u2 priviledgeMode;
+	assign satp = CSR.satp;
 
-
-    // 声明MMU相关信号
-    word_t i_vaddr, i_paddr;
-    logic i_miss, i_done;
-    dbus_req_t i_mmu_dreq;
-	dbus_resp_t iresp_dout;
-    
-    // 实例化MMU
-    mmu mmu_inst (
-        .clk(clk),
-        .reset(reset),
-        
-        // 数据访存接口 - 连接到memory模块
-        .d_vaddr(),
-        .d_en(),
-        .d_is_write(),
-        .d_write_data(),
-        .d_mem_size(),
-        .d_paddr(),  // memory模块内部使用
-        .d_miss(),   // memory模块内部使用
-        .d_done(),   // memory模块内部使用
-        
-        // 指令访存接口
-        .i_vaddr(pc),  // 使用当前PC作为指令虚拟地址
-        .i_en(1'b1),   // 指令访存总是启用
-        .i_paddr(i_paddr),
-        .i_miss(i_miss),
-        .i_done(i_done),
-        
-        // CSR寄存器
-        .csr(CSR),
-        
-        // 连接到内存总线 - 这里需要仲裁
-        .dreq(i_mmu_dreq)
-    );
-
-	assign iresp.data_ok = iresp_dout.data_ok;
-	assign iresp.addr_ok = iresp_dout.addr_ok;
-	assign iresp.data = iresp_dout.data[31:0];
-    
-    // 使用翻译后的物理地址进行指令访存
-    assign ireq.valid = i_done;
-    assign ireq.addr = i_paddr;
-    
-    // 修改stallpc逻辑，考虑MMU翻译状态
-    assign stallpc = (ireq.valid & ~iresp.data_ok) | ~i_done;
-
+	assign stallpc = ireq.valid & ~iresp.data_ok;
 	assign stalllu = (dataD.ctl.memread | dataD.ctl.csrsrc) & (dataF.ra1 == dataD.dst | dataF.ra2 == dataD.dst) & (!branch_enable_d);
 
 	always_ff @(posedge clk) begin
@@ -129,6 +85,8 @@ module core
 	u32 raw_instr;
 
 	assign raw_instr = iresp.data;
+	assign ireq.valid = '1;
+	assign ireq.addr = pc;
 
 	u1 flushF;
 
@@ -227,7 +185,6 @@ module core
 		.dataM(dataM_nxt),
 		.dreq,
 		.dresp,
-		.CSR,
 		.stallmem
 	);
 

@@ -3,6 +3,7 @@
 
 `ifdef VERILATOR
 `include "include/common.sv"
+`include "include/pipes.sv"
 `else
 
 `endif
@@ -12,7 +13,8 @@
  */
 
 module CBusArbiter
-	import common::*;#(
+	import common::*;
+	import pipes::*;#(
     parameter int NUM_INPUTS = 2,  // NOTE: NUM_INPUTS >= 1
 
     localparam int MAX_INDEX = NUM_INPUTS - 1
@@ -22,14 +24,43 @@ module CBusArbiter
     input  cbus_req_t  [MAX_INDEX:0] ireqs,
     output cbus_resp_t [MAX_INDEX:0] iresps,
     output cbus_req_t  oreq,
-    input  cbus_resp_t oresp
+    input  cbus_resp_t oresp,
+    input u2 priviledgeMode,
+    input satp_t satp
+
 );
     logic busy;
     int index, select;
     cbus_req_t saved_req, selected_req;
+    cbus_req_t mmu_req;
+
+    logic mmu_enable;
+    addr_t physical_addr;
+    logic translation_done;
+
+    MMU mmu_inst(
+        .clk,
+        .reset,
+        .virtual_addr(ireqs[index].addr),
+        .enable(mmu_enable),
+        .request_valid(busy),
+        .physical_addr(physical_addr),
+        .translation_done,
+        .satp
+    );
+
+    assign mmu_enable = satp[63];
+    
+    always_comb begin
+        mmu_req = ireqs[index];
+        
+        if (mmu_enable && translation_done) begin
+            mmu_req.addr = physical_addr;
+        end
+    end
 
     // assign oreq = ireqs[index];
-    assign oreq = busy ? ireqs[index] : '0;  // prevent early issue
+    assign oreq = busy ? mmu_req : '0;  // prevent early issue
     assign selected_req = ireqs[select];
 
     // select a preferred request
