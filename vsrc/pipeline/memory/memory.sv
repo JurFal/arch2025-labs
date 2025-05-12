@@ -19,6 +19,7 @@ module memory
     output memory_data_t dataM,
     output dbus_req_t dreq,
     input dbus_resp_t dresp,
+    input csr_t CSR,
     output u1 stallmem
 );
 
@@ -67,6 +68,9 @@ module memory
         
     end
 
+    word_t physical_addr;
+    u1 page_fault, mmu_done;
+    dbus_req_t mmu_dreq;
     // 在memory模块中添加MMU实例的连接
     // 注意：这里只连接数据访存部分，指令访存将在core.sv中连接
     mmu mmu_inst (
@@ -95,7 +99,7 @@ module memory
         
         // 连接到内存总线
         .dreq(mmu_dreq),
-        .dresp(dresp)
+        .dresp
     );
 
     // 根据MMU状态决定是否发送内存请求
@@ -109,7 +113,7 @@ module memory
             dataM.excep.code = dataE.ctl.memwrite ? EXCEP_STORE_PAGE_FAULT : EXCEP_LOAD_PAGE_FAULT;
             dataM.excep.tval = dataE.alu_result;  // 保存导致异常的地址
         end
-    end*/
+    end
 
     always_ff @(posedge clk) begin
         if(reset) dreq <= '0;
@@ -129,7 +133,7 @@ module memory
                 endcase
             end
         end
-    end
+    end*/
 
     word_t writedata1, writedata2;
 
