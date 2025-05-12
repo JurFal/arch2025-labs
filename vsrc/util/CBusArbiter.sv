@@ -47,7 +47,9 @@ module CBusArbiter
         .request_valid(busy),
         .physical_addr,
         .translation_done,
-        .satp
+        .satp,
+        .oreq,
+        .oresp
     );
 
     assign mmu_enable = satp[63];
