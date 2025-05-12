@@ -19,7 +19,8 @@ module execute
     input fwd_data_t fwda, fwdb,
     output execute_data_t dataE,
     output u1 branch_enable,
-    output word_t branch_target
+    output word_t branch_target,
+    output u2 priviledgeMode
 );
 
     control_t ctl;
@@ -27,7 +28,7 @@ module execute
     
     word_t src1_reg, src1_orig, src1_pc, src1;
     word_t src2_reg, src2_orig, src2;
-    word_t aluout, aluoutw, aluoute, branch_target_j, branch_target_csr;
+    word_t aluout, aluoutw, aluoute, branch_target_j, branch_target_j_csr, branch_target_csr;
     
     muxword muxword_fwdsrca (
         .choose(fwda.enable),
@@ -90,9 +91,16 @@ module execute
         .muxout(branch_target_j)
     );
 
-    muxword muxword_branch_target_csr (
-        .choose(ctl.csrsrc),
+    muxword muxword_branch_target_j_csr (
+        .choose(ctl.mret | ctl.exception),
         .muxin0(branch_target_j),
+        .muxin1(dataD.csrdata),
+        .muxout(branch_target_j_csr)
+    );
+
+    muxword muxword_branch_target_csr (
+        .choose(ctl.csrsrc && !(ctl.mret | ctl.exception)),
+        .muxin0(branch_target_j_csr),
         .muxin1(dataD.pc + 4),
         .muxout(branch_target_csr)
     );
@@ -106,6 +114,55 @@ module execute
         .pc(dataD.pc + 4),
         .is_csr(ctl.csrsrc)
     );
+
+    always_comb begin
+        dataE.excep = dataD.excep;
+        dataE.priviledgeMode = dataD.priviledgeMode;
+        if(ctl.exception) begin
+            dataE.excep.mstatus.sd = dataD.extramstatus.sd;
+            dataE.excep.mstatus.sxl = dataD.extramstatus.sxl;
+            dataE.excep.mstatus.uxl = dataD.extramstatus.uxl;
+            dataE.excep.mstatus.tsr = dataD.extramstatus.tsr;
+            dataE.excep.mstatus.tw = dataD.extramstatus.tw;
+            dataE.excep.mstatus.tvm = dataD.extramstatus.tvm;
+            dataE.excep.mstatus.mxr = dataD.extramstatus.mxr;
+            dataE.excep.mstatus.sum = dataD.extramstatus.sum;
+            dataE.excep.mstatus.mprv = dataD.extramstatus.mprv;
+            dataE.excep.mstatus.xs = dataD.extramstatus.xs;
+            dataE.excep.mstatus.fs = dataD.extramstatus.fs;
+            dataE.excep.mstatus.mpp = dataD.priviledgeMode; // set mpp
+            dataE.excep.mstatus.spp = dataD.extramstatus.spp;
+            dataE.excep.mstatus.mpie = dataD.extramstatus.mie; // set mpie
+            dataE.excep.mstatus.spie = dataD.extramstatus.spie;
+            dataE.excep.mstatus.upie = dataD.extramstatus.upie;
+            dataE.excep.mstatus.mie = 1'b0; // set mie
+            dataE.excep.mstatus.sie = dataD.extramstatus.sie;
+            dataE.excep.mstatus.uie = dataD.extramstatus.uie;
+            dataE.priviledgeMode = 2'b0;
+        end
+        if(ctl.mret) begin
+            dataE.excep.mstatus.sd = dataD.extramstatus.sd;
+            dataE.excep.mstatus.sxl = dataD.extramstatus.sxl;
+            dataE.excep.mstatus.uxl = dataD.extramstatus.uxl;
+            dataE.excep.mstatus.tsr = dataD.extramstatus.tsr;
+            dataE.excep.mstatus.tw = dataD.extramstatus.tw;
+            dataE.excep.mstatus.tvm = dataD.extramstatus.tvm;
+            dataE.excep.mstatus.mxr = dataD.extramstatus.mxr;
+            dataE.excep.mstatus.sum = dataD.extramstatus.sum;
+            dataE.excep.mstatus.mprv = dataD.extramstatus.mprv;
+            dataE.excep.mstatus.xs = dataD.extramstatus.xs;
+            dataE.excep.mstatus.fs = dataD.extramstatus.fs;
+            dataE.excep.mstatus.mpp = dataD.extramstatus.mpp;
+            dataE.excep.mstatus.spp = dataD.extramstatus.spp;
+            dataE.excep.mstatus.mpie = dataD.extramstatus.mpie;
+            dataE.excep.mstatus.spie = dataD.extramstatus.spie;
+            dataE.excep.mstatus.upie = dataD.extramstatus.upie;
+            dataE.excep.mstatus.mie = dataD.extramstatus.mpie; // copy mpie
+            dataE.excep.mstatus.sie = dataD.extramstatus.sie;
+            dataE.excep.mstatus.uie = dataD.extramstatus.uie;
+            dataE.priviledgeMode = dataD.extramstatus.mpp;
+        end
+    end
 
     assign dataE.aluout = (ctl.jal | ctl.jalr) ? (dataD.pc + 4) : aluoute;
     assign dataE.valid = dataD.valid;

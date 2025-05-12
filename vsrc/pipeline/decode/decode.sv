@@ -24,7 +24,8 @@ module decode
     input word_t csr_wd,
     output u64 REG[31:0],
     output csr_t CSR,
-    input u1 stall
+    input u1 stall,
+    input excep_data_t excep_wdata
 );
 
     word_t rd1, rd2;
@@ -48,9 +49,13 @@ module decode
 		.csr_wen,
 		.csr_wa,
 		.csr_wd,
+        .excep_wdata,
+        .excep_readstatus(dataF.ctl.exception || dataF.ctl.mret),
+        .excep_mstatus(dataD.extramstatus),
         .CSR
 	);
 
+    assign dataD.priviledgeMode = dataF.priviledgeMode;
     assign dataD.valid = '1;
     assign dataD.pc = dataF.pc;
     assign dataD.raw_instr = ~stall ? dataF.raw_instr : '0;

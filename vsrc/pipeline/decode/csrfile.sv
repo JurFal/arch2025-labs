@@ -17,6 +17,9 @@ module csrfile
     input logic csr_wen,
     input u12 csr_wa,
     input word_t csr_wd,
+	input excep_data_t excep_wdata,
+	input u1 excep_readstatus,
+	output mstatus_t excep_mstatus,
 	output csr_t CSR
 );
 
@@ -54,7 +57,15 @@ end
 always_comb begin
 	next_csr = CSR;
 	next_csr.mcycle = CSR.mcycle + 1;
-	if (csr_wen) begin
+	excep_mstatus = excep_readstatus ? CSR.mstatus : '0;
+	if(excep_wdata.enable) begin
+		next_csr.mstatus = excep_wdata.mstatus;
+		if(!excep_wdata.mret) begin
+			next_csr.mcause = excep_wdata.mcause;
+			next_csr.mepc = excep_wdata.mepc;
+		end
+	end
+	if(csr_wen) begin
 		case(csr_wa)
 			//CSR_MHARTID: next_csr.mhartid = csr_wd;
 			CSR_MIE: next_csr.mie = csr_wd;

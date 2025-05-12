@@ -16,20 +16,24 @@ module decoder
     output control_t ctl,
     output creg_addr_t ra1, ra2, rdst,
     output word_t imm,
-    output u12 csraddr
+    output u12 csraddr,
+    input u2 priviledgeMode,
+    input word_t pc,
+    output excep_data_t excep
 );
 
     wire [6:0] op = raw_instr[6:0];
     wire [2:0] f3 = raw_instr[14:12];
     wire [6:0] f7 = raw_instr[31:25];
     wire [5:0] f6 = raw_instr[31:26];
-
+    wire [4:0] f5 = raw_instr[24:20];
 
     always_comb begin
         ctl = '0;
         ra1 = '0;
         ra2 = '0;
         rdst = '0;
+        excep = '0;
         unique case (op)
             OP_R_OPS: begin
                 ctl.regwrite = 1'b1;
@@ -327,34 +331,64 @@ module decoder
                 ctl.branchfunc = BRH_NEV;
                 ctl.csrsrc = 1'b1;
                 rdst = raw_instr[11:7];
-                csraddr = raw_instr[31:20];
                 case(f3)
+                    F3_CS_ENV: begin
+                        case(raw_instr[31:20])
+                            12'b000000000000: begin
+                                ctl.op = ECALL;
+                                ctl.exception = 1'b1;
+                                excep.enable = 1'b1;
+                                case(priviledgeMode)
+                                    MODE_U: excep.mcause = 64'h8;
+                                    MODE_S: excep.mcause = 64'h9;
+                                    MODE_M: excep.mcause = 64'hb;
+                                    default: excep.mcause = 64'h2;
+                                endcase
+                                excep.mepc = pc;
+                                csraddr = CSR_MTVEC;
+                            end
+                            12'b001100000010: begin
+                                ctl.op = MRET;
+                                ctl.mret = 1'b1;
+                                csraddr = CSR_MEPC;
+                                excep.enable = 1'b1;
+                                excep.mret = 1'b1;
+                            end
+                            default: ctl.op = UNKNOWN;
+                        endcase
+                    end
                     F3_CS_RWR: begin
                         ctl.alufunc = ALU_SRC2;
                         ra2 = raw_instr[19:15];
+                        csraddr = raw_instr[31:20];
                     end
                     F3_CS_RSR: begin
                         ctl.alufunc = ALU_OR;
                         ra2 = raw_instr[19:15];
+                        csraddr = raw_instr[31:20];
                     end
                     F3_CS_RCR: begin
                         ctl.alufunc = ALU_NAND;
                         ra2 = raw_instr[19:15];
+                        csraddr = raw_instr[31:20];
                     end
                     F3_CS_RWI: begin
                         ctl.alufunc = ALU_SRC2;
                         ctl.immsrc = 1'b1;
                         imm = {59'b0, raw_instr[19:15]};
+                        csraddr = raw_instr[31:20];
                     end
                     F3_CS_RSI: begin
                         ctl.alufunc = ALU_OR;
                         ctl.immsrc = 1'b1;
                         imm = {59'b0, raw_instr[19:15]};
+                        csraddr = raw_instr[31:20];
                     end
                     F3_CS_RCI: begin
                         ctl.alufunc = ALU_NAND;
                         ctl.immsrc = 1'b1;
                         imm = {59'b0, raw_instr[19:15]};
+                        csraddr = raw_instr[31:20];
                     end
                     default: begin
                         ctl.op = UNKNOWN;

@@ -36,6 +36,8 @@ module core
 	u1 branch_enable, branch_enable_d;
 	u1 forceflush;
 
+	u2 priviledgeMode;
+
 	assign stallpc = ireq.valid & ~iresp.data_ok;
 	assign stalllu = (dataD.ctl.memread | dataD.ctl.csrsrc) & (dataF.ra1 == dataD.dst | dataF.ra2 == dataD.dst) & (!branch_enable_d);
 
@@ -97,7 +99,8 @@ module core
 		.dataF(dataF_nxt),
 		.raw_instr,
 		.pc,
-		.stall(branch_enable_d)
+		.stall(branch_enable_d),
+		.priviledgeMode
 	);
 	
 	muxword pcselect (
@@ -128,11 +131,12 @@ module core
 		.wen(dataW_nxt.ctl.regwrite),
 		.wd(dataW_nxt.writedata),
 		.csr_wa(dataW_nxt.csraddr),
-		.csr_wen(dataW_nxt.ctl.csrsrc),
+		.csr_wen(dataW_nxt.ctl.csrsrc && !(dataW_nxt.ctl.exception | dataW_nxt.ctl.mret)),
 		.csr_wd(dataW_nxt.csrdata),
 		.REG,
 		.CSR,
-		.stall(stalllu | branch_enable_d)
+		.stall(stalllu | branch_enable_d),
+		.excep_wdata(dataW_nxt.excep)
 	);
 
 	u1 flushE;
@@ -141,7 +145,7 @@ module core
 
 	always_ff @(posedge clk) begin
 		if (reset) dataE <= '0;
-		else if (flushE) dataE <= dataE_nxt;
+		else if (flushE) begin dataE <= dataE_nxt; priviledgeMode <= dataE_nxt.priviledgeMode; end
 	end
 
 	fwd_data_t fwd_srca, fwd_srcb;
@@ -160,7 +164,8 @@ module core
 		.fwdb(fwd_srcb),
 		.dataE(dataE_nxt),
 		.branch_enable,
-		.branch_target
+		.branch_target,
+		.priviledgeMode
 	);
 
 	u1 flushM;
@@ -266,7 +271,7 @@ module core
 	DifftestCSRState DifftestCSRState(
 		.clock              (clk),
 		.coreid             (CSR.mhartid[7:0]),
-		.priviledgeMode     (3),
+		.priviledgeMode     (priviledgeMode),
 		.mstatus            (CSR.mstatus & MSTATUS_MASK),
 		.sstatus            (CSR.mstatus & SSTATUS_MASK),
 		.mepc               (CSR.mepc),
@@ -291,3 +296,45 @@ module core
 endmodule
 
 `endif
+
+    // 声明MMU相关信号
+    word_t i_vaddr, i_paddr;
+    logic i_miss, i_done;
+    dbus_req_t i_mmu_dreq;
+    
+    // 实例化MMU
+    mmu mmu_inst (
+        .clk(clk),
+        .reset(reset),
+        
+        // 数据访存接口 - 连接到memory模块
+        .d_vaddr(dataE.aluout),
+        .d_en(dataE.ctl.memread | dataE.ctl.memwrite),
+        .d_is_write(dataE.ctl.memwrite),
+        .d_write_data(dataE.srcb),
+        .d_mem_size(dataE.ctl.memsize),
+        .d_paddr(),  // memory模块内部使用
+        .d_miss(),   // memory模块内部使用
+        .d_done(),   // memory模块内部使用
+        
+        // 指令访存接口
+        .i_vaddr(pc),  // 使用当前PC作为指令虚拟地址
+        .i_en(1'b1),   // 指令访存总是启用
+        .i_paddr(i_paddr),
+        .i_miss(i_miss),
+        .i_done(i_done),
+        
+        // CSR寄存器
+        .csr(CSR),
+        
+        // 连接到内存总线 - 这里需要仲裁
+        .dreq(i_mmu_dreq),
+        .dresp(iresp)
+    );
+    
+    // 使用翻译后的物理地址进行指令访存
+    assign ireq.valid = i_done;
+    assign ireq.addr = i_paddr;
+    
+    // 修改stallpc逻辑，考虑MMU翻译状态
+    assign stallpc = (ireq.valid & ~iresp.data_ok) | ~i_done;

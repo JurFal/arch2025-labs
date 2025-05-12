@@ -8,6 +8,11 @@
 package pipes;
 	import common::*;
 
+//modes
+parameter u2 MODE_U = 2'b00;
+parameter u2 MODE_S = 2'b01;
+parameter u2 MODE_M = 2'b11;
+
 // csr names
   parameter u12 CSR_MHARTID = 12'hf14;
   parameter u12 CSR_MIE = 12'h304;
@@ -83,6 +88,7 @@ parameter F3_BR_BLU = 3'b110; // less than
 parameter F3_BR_BGU = 3'b111; // greater than, unsigned
 
 // csr F3
+parameter F3_CS_ENV = 3'b000; // environment settings
 parameter F3_CS_RWR = 3'b001; // read and write
 parameter F3_CS_RSR = 3'b010; // read and set
 parameter F3_CS_RCR = 3'b011; // read and clear
@@ -110,7 +116,8 @@ typedef enum logic [5:0] {
 	SB, SH, SW, SD,
 	LUI, AUIPC,
 	BEQ, BNE, BLT, BLTU, BGE, BGEU,
-	JAL, JALR
+	JAL, JALR,
+	MRET, ECALL
 } opcode_t; 
 
 typedef enum logic [4:0] {
@@ -134,7 +141,8 @@ typedef struct packed {
 	alufunc_t alufunc;
 	branchfunc_t branchfunc;
 	u1 zeroextwb, regwrite, immsrc, pcsrc, csrsrc, aluext,
-	   memwrite, memread, jal, jalr;
+	   memwrite, memread, jal, jalr,
+	   exception, mret;
 	msize_t memsize;
 } control_t;
 
@@ -142,56 +150,6 @@ typedef struct packed {
 	u1 enable;
 	word_t data;
 } fwd_data_t;
-
-typedef struct packed {
-	u1 valid;
-	u32 raw_instr;
-	u64 pc;
-	word_t imm;
-	control_t ctl;
-	creg_addr_t ra1, ra2, dst;
-	u12 csraddr;
-} fetch_data_t;
-
-typedef struct packed {
-	u1 valid;
-	u32 raw_instr;
-	u64 pc;
-	word_t srca, srcb, imm, csrdata;
-	control_t ctl;
-	creg_addr_t ra1, ra2, dst;
-	u12 csraddr;
-} decode_data_t;
-
-typedef struct packed {
-	u1 valid;
-	u32 raw_instr;
-	u64 pc;
-	word_t aluout, csrdata, memwd;
-	control_t ctl;
-	creg_addr_t ra1, ra2, dst;
-	u12 csraddr;
-} execute_data_t;
-
-typedef struct packed {
-	u1 valid;
-	u32 raw_instr;
-	u64 pc;
-	word_t writedata, csrdata, memaddr;
-	control_t ctl;
-	creg_addr_t ra1, ra2, dst;
-	u12 csraddr;
-} memory_data_t;
-
-typedef struct packed {
-	u1 valid;
-	u32 raw_instr;
-	u64 pc;
-	word_t writedata, csrdata, memaddr;
-	control_t ctl;
-	creg_addr_t ra1, ra2, dst;
-	u12 csraddr;
-} writeback_data_t;
 
 typedef struct packed {
     u1 sd;
@@ -219,6 +177,72 @@ typedef struct packed {
     u1 sie;
     u1 uie;
 } mstatus_t;
+
+typedef struct packed {
+	u1 enable;
+	u1 mret;
+	word_t mcause, mepc, mtval;
+	mstatus_t mstatus;
+} excep_data_t;
+
+typedef struct packed {
+	u1 valid;
+	u32 raw_instr;
+	u64 pc;
+	word_t imm;
+	control_t ctl;
+	creg_addr_t ra1, ra2, dst;
+	u12 csraddr;
+	excep_data_t excep;
+	u2 priviledgeMode;
+} fetch_data_t;
+
+typedef struct packed {
+	u1 valid;
+	u32 raw_instr;
+	u64 pc;
+	word_t srca, srcb, imm, csrdata;
+	control_t ctl;
+	creg_addr_t ra1, ra2, dst;
+	u12 csraddr;
+	mstatus_t extramstatus;
+	excep_data_t excep;
+	u2 priviledgeMode;
+} decode_data_t;
+
+typedef struct packed {
+	u1 valid;
+	u32 raw_instr;
+	u64 pc;
+	word_t aluout, csrdata, memwd;
+	control_t ctl;
+	creg_addr_t ra1, ra2, dst;
+	u12 csraddr;
+	excep_data_t excep;
+	u2 priviledgeMode;
+} execute_data_t;
+
+typedef struct packed {
+	u1 valid;
+	u32 raw_instr;
+	u64 pc;
+	word_t writedata, csrdata, memaddr;
+	control_t ctl;
+	creg_addr_t ra1, ra2, dst;
+	u12 csraddr;
+	excep_data_t excep;
+} memory_data_t;
+
+typedef struct packed {
+	u1 valid;
+	u32 raw_instr;
+	u64 pc;
+	word_t writedata, csrdata, memaddr;
+	control_t ctl;
+	creg_addr_t ra1, ra2, dst;
+	u12 csraddr;
+	excep_data_t excep;
+} writeback_data_t;
 
 typedef struct packed {
     u4  mode;

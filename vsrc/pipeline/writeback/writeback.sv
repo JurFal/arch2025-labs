@@ -28,6 +28,7 @@ module writeback
         dataW.csrdata = dataM.csrdata;
         dataW.memaddr = dataM.memaddr;
         dataW.csraddr = dataM.csraddr;
+        dataW.excep = dataM.excep;
     end
 endmodule
 
