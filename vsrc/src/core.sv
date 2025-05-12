@@ -146,7 +146,7 @@ module core
 	assign flushE = (dataD.valid & !stallmem & !stallpc) | forceflush;
 
 	always_ff @(posedge clk) begin
-		if (reset) dataE <= '0;
+		if (reset) begin dataE <= '0; priviledgeMode <= 2'b11; end
 		else if (flushE) begin dataE <= dataE_nxt; priviledgeMode <= dataE_nxt.priviledgeMode; end
 	end
 

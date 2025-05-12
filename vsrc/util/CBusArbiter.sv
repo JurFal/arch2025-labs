@@ -4,6 +4,7 @@
 `ifdef VERILATOR
 `include "include/common.sv"
 `include "include/pipes.sv"
+`include "util/MMU.sv"
 `else
 
 `endif
@@ -36,7 +37,7 @@ module CBusArbiter
 
     logic mmu_enable;
     addr_t physical_addr;
-    logic translation_done;
+    logic translation_done, translation_done_p;
 
     MMU mmu_inst(
         .clk,
@@ -44,19 +45,35 @@ module CBusArbiter
         .virtual_addr(ireqs[index].addr),
         .enable(mmu_enable),
         .request_valid(busy),
-        .physical_addr(physical_addr),
+        .physical_addr,
         .translation_done,
         .satp
     );
 
     assign mmu_enable = satp[63];
+
+
+
+    always_ff @(posedge clk)
+    if (~reset) begin
+        if (oresp.last)
+            translation_done_p <= '0;
+        else if (translation_done)
+                translation_done_p <= 1'b1;
+    end else begin
+        translation_done_p <= '0;
+    end
+
     
     always_comb begin
-        mmu_req = ireqs[index];
-        
-        if (mmu_enable && translation_done) begin
-            mmu_req.addr = physical_addr;
-        end
+        mmu_req.is_write = ireqs[index].is_write;
+        mmu_req.size = ireqs[index].size;
+        mmu_req.strobe = ireqs[index].strobe;
+        mmu_req.data = ireqs[index].data;
+        mmu_req.len = ireqs[index].len;
+        mmu_req.burst = ireqs[index].burst;
+        mmu_req.valid = !mmu_enable | translation_done | translation_done_p;
+        mmu_req.addr = (mmu_enable && (translation_done | translation_done_p)) ? physical_addr : ireqs[index].addr;
     end
 
     // assign oreq = ireqs[index];
