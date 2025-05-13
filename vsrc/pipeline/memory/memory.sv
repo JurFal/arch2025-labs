@@ -34,6 +34,7 @@ module memory
         dataM.ra2 = dataE.ra2;
         dataM.ctl = dataE.ctl;
         dataM.excep = dataE.excep;
+        dataM.priviledgeMode = dataE.priviledgeMode_new;
         rd0 = '0;
         rd1 = '0;
         rd1sg = '0;

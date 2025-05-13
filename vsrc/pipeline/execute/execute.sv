@@ -20,7 +20,7 @@ module execute
     output execute_data_t dataE,
     output u1 branch_enable,
     output word_t branch_target,
-    output u2 priviledgeMode
+    input u2 priviledgeMode
 );
 
     control_t ctl;
@@ -117,8 +117,15 @@ module execute
 
     always_comb begin
         dataE.excep = dataD.excep;
-        dataE.priviledgeMode = dataD.priviledgeMode;
+        dataE.priviledgeMode = priviledgeMode;
+        if(!(ctl.exception | ctl.mret)) dataE.priviledgeMode_new = priviledgeMode;
         if(ctl.exception) begin
+            case(priviledgeMode)
+                MODE_U: dataE.excep.mcause = 64'h8;
+                MODE_S: dataE.excep.mcause = 64'h9;
+                MODE_M: dataE.excep.mcause = 64'hb;
+                default: dataE.excep.mcause = 64'h2;
+            endcase
             dataE.excep.mstatus.sd = dataD.extramstatus.sd;
             dataE.excep.mstatus.sxl = dataD.extramstatus.sxl;
             dataE.excep.mstatus.uxl = dataD.extramstatus.uxl;
@@ -138,7 +145,7 @@ module execute
             dataE.excep.mstatus.mie = 1'b0; // set mie
             dataE.excep.mstatus.sie = dataD.extramstatus.sie;
             dataE.excep.mstatus.uie = dataD.extramstatus.uie;
-            dataE.priviledgeMode = 2'b0;
+            dataE.priviledgeMode_new = 2'b11;
         end
         if(ctl.mret) begin
             dataE.excep.mstatus.sd = dataD.extramstatus.sd;
@@ -150,17 +157,17 @@ module execute
             dataE.excep.mstatus.mxr = dataD.extramstatus.mxr;
             dataE.excep.mstatus.sum = dataD.extramstatus.sum;
             dataE.excep.mstatus.mprv = dataD.extramstatus.mprv;
-            dataE.excep.mstatus.xs = dataD.extramstatus.xs;
+            dataE.excep.mstatus.xs = '0;
             dataE.excep.mstatus.fs = dataD.extramstatus.fs;
-            dataE.excep.mstatus.mpp = dataD.extramstatus.mpp;
+            dataE.excep.mstatus.mpp = '0;
             dataE.excep.mstatus.spp = dataD.extramstatus.spp;
-            dataE.excep.mstatus.mpie = dataD.extramstatus.mpie;
+            dataE.excep.mstatus.mpie = 1'b1; // set mpie
             dataE.excep.mstatus.spie = dataD.extramstatus.spie;
             dataE.excep.mstatus.upie = dataD.extramstatus.upie;
             dataE.excep.mstatus.mie = dataD.extramstatus.mpie; // copy mpie
             dataE.excep.mstatus.sie = dataD.extramstatus.sie;
             dataE.excep.mstatus.uie = dataD.extramstatus.uie;
-            dataE.priviledgeMode = dataD.extramstatus.mpp;
+            dataE.priviledgeMode_new = '0;
         end
     end
 

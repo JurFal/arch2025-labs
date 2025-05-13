@@ -16,8 +16,7 @@ module fetch
     output fetch_data_t dataF,
     input u32 raw_instr,
     input u64 pc,
-    input u1 stall,
-    input u2 priviledgeMode
+    input u1 stall
 );
 
     creg_addr_t ra1, ra2, rdst;
@@ -34,11 +33,9 @@ module fetch
         .rdst,
         .imm,
         .csraddr,
-        .priviledgeMode,
         .pc,
         .excep
     );
-    assign dataF.priviledgeMode = priviledgeMode;
     assign dataF.valid = '1;
     assign dataF.raw_instr = ~stall ? raw_instr : 0;
     assign dataF.pc = pc;

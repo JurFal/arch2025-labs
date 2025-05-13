@@ -220,6 +220,7 @@ typedef struct packed {
 	u12 csraddr;
 	excep_data_t excep;
 	u2 priviledgeMode;
+	u2 priviledgeMode_new;
 } execute_data_t;
 
 typedef struct packed {
@@ -231,6 +232,7 @@ typedef struct packed {
 	creg_addr_t ra1, ra2, dst;
 	u12 csraddr;
 	excep_data_t excep;
+	u2 priviledgeMode;
 } memory_data_t;
 
 typedef struct packed {
@@ -242,6 +244,7 @@ typedef struct packed {
 	creg_addr_t ra1, ra2, dst;
 	u12 csraddr;
 	excep_data_t excep;
+	u2 priviledgeMode;
 } writeback_data_t;
 
 typedef struct packed {

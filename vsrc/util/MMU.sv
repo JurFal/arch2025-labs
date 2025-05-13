@@ -3,13 +3,15 @@
 
 `ifdef VERILATOR
 `include "include/common.sv"
+`include "include/pipes.sv"
 `else
 
 `endif
 
 module MMU
-    import common::*;(
-    input logic clk, reset,
+    import common::*;
+    import pipes::*;(
+    input logic clk, reset, request_valid,
     
     // 输入虚拟地址请求
     input cbus_req_t ireq,
@@ -20,7 +22,8 @@ module MMU
     input cbus_resp_t oresp,
     
     // 页表基址寄存器
-    input word_t satp
+    input satp_t satp,
+    input u2 priviledgeMode
 );
     // 页表转换状态
     typedef enum logic [2:0] {
@@ -45,7 +48,7 @@ module MMU
     cbus_req_t saved_req;
     
     // 判断是否启用MMU
-    assign mmu_active = satp[63]; // MODE字段为1表示启用Sv39
+    assign mmu_active = satp[63] & (priviledgeMode == 2'b00); // MODE字段为1表示启用Sv39
     
     // 页表转换逻辑
     always_ff @(posedge clk) begin
@@ -72,7 +75,7 @@ module MMU
                         // 计算一级页表项地址
                         // 第一级页表基地址 = {satp[43:0], 12'b0}
                         // 页表项地址 = 页表基地址 + 虚拟地址[38:30] * 8
-                        l1_addr <= {satp[43:0], 12'b0} + ({55'b0, ireq.addr[38:30]} << 3);
+                        l1_addr <= {8'b0, satp.ppn, 12'b0} + ({55'b0, ireq.addr[38:30]} << 3);
                     end
                 end
                 
@@ -80,21 +83,24 @@ module MMU
                     if (oresp.ready && oresp.last) begin
                         // 保存一级页表项
                         l1_entry <= oresp.data;
+                        //l2_addr <= {8'b0, oresp.data[53:10], 12'b0} + ({55'b0, current_vaddr[29:21]} << 3);
                         
                         // 检查页表项是否有效
                         if (oresp.data[0]) begin
                             // 检查是否是大页(1GB)
                             if (oresp.data[3:1] != 0) begin
                                 // 直接翻译为物理地址 (1GB页)
-                                translated_addr <= {oresp.data[53:30], current_vaddr[29:0]};
+                                translated_addr <= {8'b0, oresp.data[53:30], current_vaddr[31:0]};
                                 translation_done <= 1'b1;
                             end else begin
                                 // 计算二级页表项地址
-                                l2_addr <= {oresp.data[53:10], 12'b0} + ({55'b0, current_vaddr[29:21]} << 3);
+                                l2_addr <= {8'b0, oresp.data[53:10], 12'b0} + ({55'b0, current_vaddr[29:21]} << 3);
                             end
                         end else begin
                             // 页表项无效，页错误
                             translation_done <= 1'b1;
+                            //translated_addr <= {8'b0, oresp.data[53:10], current_vaddr[11:0]};
+                            translated_addr <= current_vaddr;
                             // 这里应该设置页错误标志，但简化处理
                         end
                     end
@@ -104,21 +110,24 @@ module MMU
                     if (oresp.ready && oresp.last) begin
                         // 保存二级页表项
                         l2_entry <= oresp.data;
+                        //l3_addr <= {8'b0, oresp.data[53:10], 12'b0} + ({55'b0, current_vaddr[20:12]} << 3);
                         
                         // 检查页表项是否有效
                         if (oresp.data[0]) begin
                             // 检查是否是中页(2MB)
                             if (oresp.data[3:1] != 0) begin
                                 // 直接翻译为物理地址 (2MB页)
-                                translated_addr <= {oresp.data[53:21], current_vaddr[20:0]};
+                                translated_addr <= {8'b0, oresp.data[53:21], current_vaddr[22:0]};
                                 translation_done <= 1'b1;
                             end else begin
                                 // 计算三级页表项地址
-                                l3_addr <= {oresp.data[53:10], 12'b0} + ({55'b0, current_vaddr[20:12]} << 3);
+                                l3_addr <= {8'b0, oresp.data[53:10], 12'b0} + ({55'b0, current_vaddr[20:12]} << 3);
                             end
                         end else begin
                             // 页表项无效，页错误
                             translation_done <= 1'b1;
+                            //translated_addr <= {8'b0, oresp.data[53:10], current_vaddr[11:0]};
+                            translated_addr <= current_vaddr;
                             // 这里应该设置页错误标志，但简化处理
                         end
                     end
@@ -130,19 +139,26 @@ module MMU
                         l3_entry <= oresp.data;
                         
                         // 检查页表项是否有效
-                        if (oresp.data[0]) begin
+                        /*if (oresp.data[0]) begin
                             // 计算最终物理地址 (4KB页)
-                            translated_addr <= {oresp.data[53:10], current_vaddr[11:0]};
-                        end
+                            translated_addr <= {8'b0, oresp.data[53:10], current_vaddr[11:0]};
+                        end*/
                         
                         // 无论如何都完成翻译
                         translation_done <= 1'b1;
+                        translated_addr <= {8'b0, oresp.data[53:10], current_vaddr[11:0]};
+                        //translated_addr <= current_vaddr;
                     end
                 end
                 
                 MMU_TRANSLATE: begin
                     // 保持translation_done信号
                     translation_done <= 1'b1;
+                end
+
+                default: begin
+                    // 保持translation_done信号
+                    translation_done <= translation_done;
                 end
             endcase
         end
@@ -165,6 +181,7 @@ module MMU
             
             MMU_L1_WAIT: begin
                 if (oresp.ready && oresp.last) begin
+                    next_state = MMU_L2_FETCH;
                     // 检查页表项是否有效
                     if (oresp.data[0]) begin
                         // 检查是否是大页(1GB)
@@ -186,6 +203,7 @@ module MMU
             
             MMU_L2_WAIT: begin
                 if (oresp.ready && oresp.last) begin
+                    next_state = MMU_L3_FETCH;
                     // 检查页表项是否有效
                     if (oresp.data[0]) begin
                         // 检查是否是中页(2MB)
@@ -212,7 +230,7 @@ module MMU
             end
             
             MMU_TRANSLATE: begin
-                if (!ireq.valid) begin
+                if (!ireq.valid | iresp.last) begin
                     next_state = MMU_IDLE;
                 end
             end
@@ -224,60 +242,58 @@ module MMU
         // 默认值
         oreq = '0;
         iresp = '0;
-        
-        case (state)
-            MMU_L1_FETCH: begin
-                // 发起一级页表项读取请求
-                oreq.valid = 1'b1;
-                oreq.is_write = 1'b0;
-                oreq.addr = l1_addr;
-                oreq.size = 3'b011; // 8字节
-                oreq.strobe = 8'hFF; // 读取所有字节
-                oreq.len = 4'b0000; // 单次突发
-                oreq.burst = AXI_BURST_FIXED;
-            end
-            
-            MMU_L2_FETCH: begin
-                // 发起二级页表项读取请求
-                oreq.valid = 1'b1;
-                oreq.is_write = 1'b0;
-                oreq.addr = l2_addr;
-                oreq.size = 3'b011; // 8字节
-                oreq.strobe = 8'hFF; // 读取所有字节
-                oreq.len = 4'b0000; // 单次突发
-                oreq.burst = AXI_BURST_FIXED;
-            end
-            
-            MMU_L3_FETCH: begin
-                // 发起三级页表项读取请求
-                oreq.valid = 1'b1;
-                oreq.is_write = 1'b0;
-                oreq.addr = l3_addr;
-                oreq.size = 3'b011; // 8字节
-                oreq.strobe = 8'hFF; // 读取所有字节
-                oreq.len = 4'b0000; // 单次突发
-                oreq.burst = AXI_BURST_FIXED;
-            end
-            
-            MMU_TRANSLATE: begin
-                if (translation_done) begin
-                    // 转发原始请求，但使用转换后的地址
-                    oreq = saved_req;
-                    oreq.addr = translated_addr;
-                    
-                    // 将内存响应传回给原始请求者
-                    iresp = oresp;
+        if(request_valid)
+            case (state)
+                MMU_L1_FETCH, MMU_L1_WAIT: begin
+                    // 发起一级页表项读取请求
+                    oreq.valid = 1'b1;
+                    oreq.is_write = 1'b0;
+                    oreq.addr = l1_addr;
+                    oreq.size = MSIZE8; // 8字节
+                    oreq.strobe = 8'hFF; // 读取所有字节
+                    oreq.len = MLEN1; // 单次突发
+                    oreq.burst = AXI_BURST_FIXED;
                 end
-            end
-            
-            default: begin
-                if (!mmu_active && ireq.valid) begin
-                    // 如果MMU未启用，直接转发请求
-                    oreq = ireq;
-                    iresp = oresp;
+                
+                MMU_L2_FETCH, MMU_L2_WAIT:  begin
+                    // 发起二级页表项读取请求
+                    oreq.valid = 1'b1;
+                    oreq.is_write = 1'b0;
+                    oreq.addr = l2_addr;
+                    oreq.size = MSIZE8; // 8字节
+                    oreq.strobe = 8'hFF; // 读取所有字节
+                    oreq.len = MLEN1; // 单次突发
+                    oreq.burst = AXI_BURST_FIXED;
                 end
-            end
-        endcase
+                
+                MMU_L3_FETCH, MMU_L3_WAIT:  begin
+                    // 发起三级页表项读取请求
+                    oreq.valid = 1'b1;
+                    oreq.is_write = 1'b0;
+                    oreq.addr = l3_addr;
+                    oreq.size = MSIZE8; // 8字节
+                    oreq.strobe = 8'hFF; // 读取所有字节
+                    oreq.len = MLEN1; // 单次突发
+                    oreq.burst = AXI_BURST_FIXED;
+                end
+                
+                MMU_TRANSLATE: begin
+                    if (translation_done) begin
+                        // 转发原始请求，但使用转换后的地址
+                        oreq = saved_req;
+                        oreq.addr = translated_addr;
+                        iresp = oresp;
+                    end
+                end
+                
+                default: begin
+                    if (!mmu_active && ireq.valid) begin
+                        // 如果MMU未启用，直接转发请求
+                        oreq = ireq;
+                        iresp = oresp;
+                    end
+                end
+            endcase
     end
     
 endmodule

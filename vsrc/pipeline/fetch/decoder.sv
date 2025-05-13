@@ -17,7 +17,6 @@ module decoder
     output creg_addr_t ra1, ra2, rdst,
     output word_t imm,
     output u12 csraddr,
-    input u2 priviledgeMode,
     input word_t pc,
     output excep_data_t excep
 );
@@ -338,12 +337,6 @@ module decoder
                                 ctl.op = ECALL;
                                 ctl.exception = 1'b1;
                                 excep.enable = 1'b1;
-                                case(priviledgeMode)
-                                    MODE_U: excep.mcause = 64'h8;
-                                    MODE_S: excep.mcause = 64'h9;
-                                    MODE_M: excep.mcause = 64'hb;
-                                    default: excep.mcause = 64'h2;
-                                endcase
                                 excep.mepc = pc;
                                 csraddr = CSR_MTVEC;
                             end

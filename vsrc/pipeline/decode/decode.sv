@@ -55,7 +55,6 @@ module decode
         .CSR
 	);
 
-    assign dataD.priviledgeMode = dataF.priviledgeMode;
     assign dataD.valid = '1;
     assign dataD.pc = dataF.pc;
     assign dataD.raw_instr = ~stall ? dataF.raw_instr : '0;
@@ -65,6 +64,7 @@ module decode
     assign dataD.dst = dataF.dst;
     assign dataD.imm = dataF.imm;
     assign dataD.csraddr = dataF.csraddr;
+    assign dataD.excep = dataF.excep;
 
     assign dataD.srca = rd1;
     assign dataD.srcb = rd2;

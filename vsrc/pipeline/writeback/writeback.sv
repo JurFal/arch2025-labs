@@ -29,6 +29,7 @@ module writeback
         dataW.memaddr = dataM.memaddr;
         dataW.csraddr = dataM.csraddr;
         dataW.excep = dataM.excep;
+        dataW.priviledgeMode = dataM.priviledgeMode;
     end
 endmodule
 

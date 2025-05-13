@@ -35,51 +35,20 @@ module CBusArbiter
     cbus_req_t saved_req, selected_req;
     cbus_req_t mmu_req;
 
-    logic mmu_enable;
-    addr_t physical_addr;
-    logic translation_done, translation_done_p;
-
     MMU mmu_inst(
         .clk,
         .reset,
-        .virtual_addr(ireqs[index].addr),
-        .enable(mmu_enable),
         .request_valid(busy),
-        .physical_addr,
-        .translation_done,
-        .satp,
+        .ireq(ireqs[index]),
+        .iresp(iresps[index]),
         .oreq,
-        .oresp
+        .oresp,
+        .satp,
+        .priviledgeMode
     );
 
-    assign mmu_enable = satp[63];
-
-
-
-    always_ff @(posedge clk)
-    if (~reset) begin
-        if (oresp.last)
-            translation_done_p <= '0;
-        else if (translation_done)
-                translation_done_p <= 1'b1;
-    end else begin
-        translation_done_p <= '0;
-    end
-
-    
-    always_comb begin
-        mmu_req.is_write = ireqs[index].is_write;
-        mmu_req.size = ireqs[index].size;
-        mmu_req.strobe = ireqs[index].strobe;
-        mmu_req.data = ireqs[index].data;
-        mmu_req.len = ireqs[index].len;
-        mmu_req.burst = ireqs[index].burst;
-        mmu_req.valid = !mmu_enable | translation_done | translation_done_p;
-        mmu_req.addr = (mmu_enable && (translation_done | translation_done_p)) ? physical_addr : ireqs[index].addr;
-    end
-
     // assign oreq = ireqs[index];
-    assign oreq = busy ? mmu_req : '0;  // prevent early issue
+    // assign oreq = busy ? mmu_req : '0;  // prevent early issue
     assign selected_req = ireqs[select];
 
     // select a preferred request
@@ -95,16 +64,14 @@ module CBusArbiter
     end
 
     // feedback to selected request
-    always_comb begin
-        iresps = '0;
-
+    /*always_comb begin
         if (busy) begin
             for (int i = 0; i < NUM_INPUTS; i++) begin
-                if (index == i)
-                    iresps[i] = oresp;
+                if (index != i)
+                    iresps[i] = '0;
             end
         end
-    end
+    end*/
 
     always_ff @(posedge clk)
     if (~reset) begin

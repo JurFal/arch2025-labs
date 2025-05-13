@@ -101,8 +101,7 @@ module core
 		.dataF(dataF_nxt),
 		.raw_instr,
 		.pc,
-		.stall(branch_enable_d),
-		.priviledgeMode
+		.stall(branch_enable_d)
 	);
 	
 	muxword pcselect (
@@ -147,7 +146,7 @@ module core
 
 	always_ff @(posedge clk) begin
 		if (reset) begin dataE <= '0; priviledgeMode <= 2'b11; end
-		else if (flushE) begin dataE <= dataE_nxt; priviledgeMode <= dataE_nxt.priviledgeMode; end
+		else if (flushE) begin dataE <= dataE_nxt; priviledgeMode <= dataE_nxt.priviledgeMode_new; end
 	end
 
 	fwd_data_t fwd_srca, fwd_srcb;
@@ -273,7 +272,7 @@ module core
 	DifftestCSRState DifftestCSRState(
 		.clock              (clk),
 		.coreid             (CSR.mhartid[7:0]),
-		.priviledgeMode     (priviledgeMode),
+		.priviledgeMode     (dataW.priviledgeMode),
 		.mstatus            (CSR.mstatus & MSTATUS_MASK),
 		.sstatus            (CSR.mstatus & SSTATUS_MASK),
 		.mepc               (CSR.mepc),
