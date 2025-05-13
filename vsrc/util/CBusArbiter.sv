@@ -34,13 +34,14 @@ module CBusArbiter
     int index, select;
     cbus_req_t saved_req, selected_req;
     cbus_req_t mmu_req;
+    cbus_resp_t selected_resp;
 
     MMU mmu_inst(
         .clk,
         .reset,
         .request_valid(busy),
         .ireq(ireqs[index]),
-        .iresp(iresps[index]),
+        .iresp(selected_resp),
         .oreq,
         .oresp,
         .satp,
@@ -64,14 +65,14 @@ module CBusArbiter
     end
 
     // feedback to selected request
-    /*always_comb begin
+    always_comb begin
         if (busy) begin
             for (int i = 0; i < NUM_INPUTS; i++) begin
-                if (index != i)
-                    iresps[i] = '0;
+                if (index != i) iresps[i] = '0;
+                else iresps[i] = selected_resp;
             end
         end
-    end*/
+    end
 
     always_ff @(posedge clk)
     if (~reset) begin

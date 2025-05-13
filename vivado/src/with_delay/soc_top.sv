@@ -74,7 +74,7 @@ module soc_top #(
 	if (SIMULATION)
 		assign cpu_clk = clk;
 	else
-		clk_wiz_0 clk_wiz_0(.sys_clk(clk), .cpu_clk(cpu_clk));
+		clk_wiz_0 clk_wiz_0(.sys_clk(clk), .cpu_clk(cpu_clk), .reset(reset));
 	
 
 endmodule
