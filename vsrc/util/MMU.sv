@@ -21,11 +21,8 @@ module MMU
 );
     typedef enum logic [2:0] {
         MMU_IDLE,
-        MMU_L1_FETCH,
         MMU_L1_WAIT,
-        MMU_L2_FETCH,
         MMU_L2_WAIT,
-        MMU_L3_FETCH,
         MMU_L3_WAIT,
         MMU_TRANSLATE
     } mmu_state_t;
@@ -37,8 +34,20 @@ module MMU
     logic mmu_active;
     logic translation_done;
     cbus_req_t saved_req;
+    logic oresp_ok, oresp_ok_d, oresp_ok_end;
     
+    assign oresp_ok = oresp.ready & oresp.last;
+    assign oresp_ok_end = oresp_ok_d & !oresp_ok;
     assign mmu_active = satp[63] & (priviledgeMode == 2'b00);
+
+    always_ff @(posedge clk) begin
+        if (reset) begin
+            oresp_ok_d <= '0;
+        end else begin
+            oresp_ok_d <= oresp_ok;
+        end
+    end
+
     
     always_ff @(posedge clk) begin
         if (reset) begin
@@ -64,7 +73,7 @@ module MMU
                 end
                 
                 MMU_L1_WAIT: begin
-                    if (oresp.ready && oresp.last) begin
+                    if (oresp_ok) begin
                         l1_entry <= oresp.data;
                         if (oresp.data[0]) begin
                             l2_addr <= {8'b0, oresp.data[53:10], 12'b0} + ({55'b0, current_vaddr[29:21]} << 3);
@@ -76,7 +85,7 @@ module MMU
                 end
                 
                 MMU_L2_WAIT: begin
-                    if (oresp.ready && oresp.last) begin
+                    if (oresp_ok) begin
                         l2_entry <= oresp.data;
                         if (oresp.data[0]) begin
                             l3_addr <= {8'b0, oresp.data[53:10], 12'b0} + ({55'b0, current_vaddr[20:12]} << 3);
@@ -88,7 +97,7 @@ module MMU
                 end
                 
                 MMU_L3_WAIT: begin
-                    if (oresp.ready && oresp.last) begin
+                    if (oresp_ok) begin
                         l3_entry <= oresp.data;
                         translation_done <= 1'b1;
                         translated_addr <= {8'b0, oresp.data[53:10], current_vaddr[11:0]};
@@ -109,46 +118,24 @@ module MMU
         case (state)
             MMU_IDLE: begin
                 if (ireq.valid && mmu_active) begin
-                    next_state = MMU_L1_FETCH;
+                    next_state = MMU_L1_WAIT;
                 end
-            end
-            
-            MMU_L1_FETCH: begin
-                next_state = MMU_L1_WAIT;
             end
             
             MMU_L1_WAIT: begin
-                if (oresp.ready && oresp.last) begin
-                    next_state = MMU_L2_FETCH;
-                    if (oresp.data[0]) begin
-                        next_state = MMU_L2_FETCH;
-                    end else begin
-                        next_state = MMU_TRANSLATE;
-                    end
+                if (oresp_ok_end) begin
+                    next_state = MMU_L2_WAIT;
                 end
-            end
-            
-            MMU_L2_FETCH: begin
-                next_state = MMU_L2_WAIT;
             end
             
             MMU_L2_WAIT: begin
-                if (oresp.ready && oresp.last) begin
-                    next_state = MMU_L3_FETCH;
-                    if (oresp.data[0]) begin
-                        next_state = MMU_L3_FETCH;
-                    end else begin
-                        next_state = MMU_TRANSLATE;
-                    end
+                if (oresp_ok_end) begin
+                    next_state = MMU_L3_WAIT;
                 end
             end
             
-            MMU_L3_FETCH: begin
-                next_state = MMU_L3_WAIT;
-            end
-            
             MMU_L3_WAIT: begin
-                if (oresp.ready && oresp.last) begin
+                if (oresp_ok_end) begin
                     next_state = MMU_TRANSLATE;
                 end
             end
@@ -158,6 +145,10 @@ module MMU
                     next_state = MMU_IDLE;
                 end
             end
+
+            default: begin
+                next_state = MMU_IDLE;
+            end
         endcase
     end
     
@@ -166,7 +157,7 @@ module MMU
         iresp = '0;
         if(request_valid)
             case (state)
-                MMU_L1_FETCH, MMU_L1_WAIT: begin
+                MMU_L1_WAIT: begin
                     oreq.valid = 1'b1;
                     oreq.is_write = 1'b0;
                     oreq.addr = l1_addr;
@@ -176,7 +167,7 @@ module MMU
                     oreq.burst = AXI_BURST_FIXED;
                 end
                 
-                MMU_L2_FETCH, MMU_L2_WAIT:  begin
+                MMU_L2_WAIT:  begin
                     oreq.valid = 1'b1;
                     oreq.is_write = 1'b0;
                     oreq.addr = l2_addr;
@@ -186,7 +177,7 @@ module MMU
                     oreq.burst = AXI_BURST_FIXED;
                 end
                 
-                MMU_L3_FETCH, MMU_L3_WAIT:  begin
+                MMU_L3_WAIT:  begin
                     oreq.valid = 1'b1;
                     oreq.is_write = 1'b0;
                     oreq.addr = l3_addr;
