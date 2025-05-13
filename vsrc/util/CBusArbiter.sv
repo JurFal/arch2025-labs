@@ -66,11 +66,9 @@ module CBusArbiter
 
     // feedback to selected request
     always_comb begin
-        if (busy) begin
-            for (int i = 0; i < NUM_INPUTS; i++) begin
-                if (index != i) iresps[i] = '0;
-                else iresps[i] = selected_resp;
-            end
+        for (int i = 0; i < NUM_INPUTS; i++) begin
+            if (index != i) iresps[i] = '0;
+            else iresps[i] = selected_resp;
         end
     end
 
