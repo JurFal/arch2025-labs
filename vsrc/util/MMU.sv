@@ -75,24 +75,14 @@ module MMU
                 MMU_L1_WAIT: begin
                     if (oresp_ok) begin
                         l1_entry <= oresp.data;
-                        if (oresp.data[0]) begin
-                            l2_addr <= {8'b0, oresp.data[53:10], 12'b0} + ({55'b0, current_vaddr[29:21]} << 3);
-                        end else begin
-                            translation_done <= 1'b1;
-                            translated_addr <= current_vaddr;
-                        end
+                        l2_addr <= {8'b0, oresp.data[53:10], 12'b0} + ({55'b0, current_vaddr[29:21]} << 3);
                     end
                 end
                 
                 MMU_L2_WAIT: begin
                     if (oresp_ok) begin
                         l2_entry <= oresp.data;
-                        if (oresp.data[0]) begin
-                            l3_addr <= {8'b0, oresp.data[53:10], 12'b0} + ({55'b0, current_vaddr[20:12]} << 3);
-                        end else begin
-                            translation_done <= 1'b1;
-                            translated_addr <= current_vaddr;
-                        end
+                        l3_addr <= {8'b0, oresp.data[53:10], 12'b0} + ({55'b0, current_vaddr[20:12]} << 3);
                     end
                 end
                 
@@ -101,7 +91,6 @@ module MMU
                         l3_entry <= oresp.data;
                         translation_done <= 1'b1;
                         translated_addr <= {8'b0, oresp.data[53:10], current_vaddr[11:0]};
-                        //translated_addr <= current_vaddr;
                     end
                 end
 
@@ -141,7 +130,7 @@ module MMU
             end
             
             MMU_TRANSLATE: begin
-                if (!ireq.valid | iresp.last) begin
+                if (!ireq.valid) begin
                     next_state = MMU_IDLE;
                 end
             end
