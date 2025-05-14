@@ -28,6 +28,7 @@ module MMU
     } mmu_state_t;
     
     mmu_state_t state, next_state;
+    mmu_state_t oresp_state, next_oresp_state;
     logic [63:0] l1_entry, l2_entry, l3_entry;
     addr_t l1_addr, l2_addr, l3_addr, translated_addr;
     addr_t current_vaddr;
@@ -61,6 +62,7 @@ module MMU
             current_vaddr <= '0;
         end else begin
             state <= next_state;
+            oresp_state <= next_oresp_state;
             
             case (state)
                 MMU_IDLE: begin
@@ -112,31 +114,72 @@ module MMU
             end
             
             MMU_L1_WAIT: begin
-                if (oresp_ok_end) begin
+                if (oresp_ok) begin
                     next_state = MMU_L2_WAIT;
                 end
             end
             
             MMU_L2_WAIT: begin
-                if (oresp_ok_end) begin
+                if (oresp_ok) begin
                     next_state = MMU_L3_WAIT;
                 end
             end
             
             MMU_L3_WAIT: begin
-                if (oresp_ok_end) begin
+                if (oresp_ok) begin
                     next_state = MMU_TRANSLATE;
                 end
             end
             
             MMU_TRANSLATE: begin
-                if (!ireq.valid) begin
+                if (iresp.last && oresp_ok) begin
                     next_state = MMU_IDLE;
                 end
             end
 
             default: begin
                 next_state = MMU_IDLE;
+            end
+        endcase
+    end
+
+        
+    always_comb begin
+        next_oresp_state = oresp_state;
+        
+        case (state)
+            MMU_IDLE: begin
+                if (oresp_ok_end) begin
+                    next_oresp_state = MMU_L1_WAIT;
+                end
+            end
+            
+            MMU_L1_WAIT: begin
+                if (oresp_ok_end) begin
+                    next_oresp_state = MMU_L2_WAIT;
+                end
+            end
+            
+            MMU_L2_WAIT: begin
+                if (oresp_ok_end) begin
+                    next_oresp_state = MMU_L3_WAIT;
+                end
+            end
+            
+            MMU_L3_WAIT: begin
+                if (oresp_ok_end) begin
+                    next_oresp_state = MMU_TRANSLATE;
+                end
+            end
+            
+            MMU_TRANSLATE: begin
+                if (oresp_ok_end) begin
+                    next_oresp_state = MMU_IDLE;
+                end
+            end
+
+            default: begin
+                next_oresp_state = MMU_IDLE;
             end
         endcase
     end
