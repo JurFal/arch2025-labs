@@ -20,7 +20,9 @@ module execute
     output execute_data_t dataE,
     output u1 branch_enable,
     output word_t branch_target,
-    input u2 priviledgeMode
+    input u2 priviledgeMode,
+	output u1 mem_misaligned,
+    output word_t mem_mcause
 );
 
     control_t ctl;
@@ -117,15 +119,9 @@ module execute
 
     always_comb begin
         dataE.excep = dataD.excep;
-        dataE.priviledgeMode = priviledgeMode;
-        if(!(ctl.exception | ctl.mret)) dataE.priviledgeMode_new = priviledgeMode;
+        dataE.priviledgeMode = dataD.priviledgeMode;
+        if(!(ctl.exception | ctl.mret)) dataE.priviledgeMode_new = dataD.priviledgeMode;
         if(ctl.exception) begin
-            case(priviledgeMode)
-                MODE_U: dataE.excep.mcause = 64'h8;
-                MODE_S: dataE.excep.mcause = 64'h9;
-                MODE_M: dataE.excep.mcause = 64'hb;
-                default: dataE.excep.mcause = 64'h2;
-            endcase
             dataE.excep.mstatus.sd = dataD.extramstatus.sd;
             dataE.excep.mstatus.sxl = dataD.extramstatus.sxl;
             dataE.excep.mstatus.uxl = dataD.extramstatus.uxl;
@@ -168,6 +164,21 @@ module execute
             dataE.excep.mstatus.sie = dataD.extramstatus.sie;
             dataE.excep.mstatus.uie = dataD.extramstatus.uie;
             dataE.priviledgeMode_new = '0;
+        end
+    end
+
+
+    always_comb begin
+        if(dataD.ctl.memread || dataD.ctl.memwrite) begin
+            case (dataD.ctl.memsize)
+                MSIZE1: mem_misaligned = 1'b0;  // 字节访问总是对齐的
+                MSIZE2: mem_misaligned = aluoute[0];  // 半字：检查最低位
+                MSIZE4: mem_misaligned = |aluoute[1:0];  // 字：检查低两位
+                MSIZE8: mem_misaligned = |aluoute[2:0];  // 双字：检查低三位
+                default: mem_misaligned = 1'b0;
+            endcase
+            if(dataD.ctl.memread) mem_mcause = 64'd4;
+            if(dataD.ctl.memwrite) mem_mcause = 64'd6;
         end
     end
 

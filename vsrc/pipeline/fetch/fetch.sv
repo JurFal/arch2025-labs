@@ -16,7 +16,13 @@ module fetch
     output fetch_data_t dataF,
     input u32 raw_instr,
     input u64 pc,
-    input u1 stall
+    input u1 stall,
+    input u1 pc_misaligned,
+    input u1 mem_misaligned,
+	input word_t mem_mcause,
+    input u2 priviledgeMode,
+    input u1 interrupted,
+    input word_t interrupt_mcause
 );
 
     creg_addr_t ra1, ra2, rdst;
@@ -34,7 +40,13 @@ module fetch
         .imm,
         .csraddr,
         .pc,
-        .excep
+        .excep,
+        .pc_misaligned,
+        .mem_misaligned,
+        .mem_mcause,
+        .priviledgeMode,
+        .interrupted,
+        .interrupt_mcause
     );
     assign dataF.valid = '1;
     assign dataF.raw_instr = ~stall ? raw_instr : 0;
@@ -46,6 +58,7 @@ module fetch
     assign dataF.imm = imm;
     assign dataF.csraddr = csraddr;
     assign dataF.excep = excep;
+    assign dataF.priviledgeMode = priviledgeMode;
 
 endmodule
 

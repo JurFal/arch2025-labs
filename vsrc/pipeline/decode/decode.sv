@@ -65,7 +65,7 @@ module decode
     assign dataD.imm = dataF.imm;
     assign dataD.csraddr = dataF.csraddr;
     assign dataD.excep = dataF.excep;
-
+    assign dataD.priviledgeMode = dataF.priviledgeMode;
     assign dataD.srca = rd1;
     assign dataD.srcb = rd2;
     

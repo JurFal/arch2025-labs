@@ -43,6 +43,29 @@ module core
 	assign stallpc = ireq.valid & ~iresp.data_ok;
 	assign stalllu = (dataD.ctl.memread | dataD.ctl.csrsrc) & (dataF.ra1 == dataD.dst | dataF.ra2 == dataD.dst) & (!branch_enable_d);
 
+	u1 interrupted;
+	word_t interrupt_mcause;
+	always_comb begin
+		interrupted = '0;
+		interrupt_mcause = '0;
+		if(CSR.mstatus.mie == 1 || priviledgeMode != 2'b11) begin
+			if(1) begin
+				if(trint && CSR.mip[7] && CSR.mie[7]) begin
+					interrupted = 1'b1;
+					interrupt_mcause = {1'b1, 63'd7};
+				end 
+				else if(swint && CSR.mip[3] && CSR.mie[3]) begin
+					interrupted = 1'b1;
+					interrupt_mcause = {1'b1, 63'd3};
+				end
+				else if(exint && CSR.mip[11] && CSR.mie[11]) begin
+					interrupted = 1'b1;
+					interrupt_mcause = {1'b1, 63'd11};
+				end
+			end
+		end
+	end
+
 	always_ff @(posedge clk) begin
 		if(reset) begin
 			stallmem_d <= '0;
@@ -76,6 +99,10 @@ module core
 		end
 	end
 
+	u1 pc_misaligned, mem_misaligned;
+	word_t mem_mcause;
+	assign pc_misaligned = (pc[1:0] != 2'b00);
+
 	fetch_data_t dataF, dataF_nxt;
 	decode_data_t dataD, dataD_nxt;
 	execute_data_t dataE, dataE_nxt;
@@ -85,12 +112,12 @@ module core
 	u32 raw_instr;
 
 	assign raw_instr = iresp.data;
-	assign ireq.valid = '1;
+	assign ireq.valid = !pc_misaligned;
 	assign ireq.addr = pc;
 
 	u1 flushF;
 
-	assign flushF = (iresp.data_ok & !stallmem & !stallpc & !stalllu) | (!stalllu & forceflush);
+	assign flushF = (iresp.data_ok & !stallmem & !stallpc & !stalllu) | (!stalllu & forceflush) | pc_misaligned;
 
 	always_ff @(posedge clk) begin
 		if (reset) dataF <= '0;
@@ -101,7 +128,13 @@ module core
 		.dataF(dataF_nxt),
 		.raw_instr,
 		.pc,
-		.stall(branch_enable_d)
+		.stall(branch_enable_d | mem_misaligned),
+		.pc_misaligned,
+		.mem_misaligned,
+		.mem_mcause,
+		.priviledgeMode,
+		.interrupted,
+		.interrupt_mcause
 	);
 	
 	muxword pcselect (
@@ -136,7 +169,7 @@ module core
 		.csr_wd(dataW_nxt.csrdata),
 		.REG,
 		.CSR,
-		.stall(stalllu | branch_enable_d),
+		.stall(stalllu | branch_enable_d | mem_misaligned),
 		.excep_wdata(dataW_nxt.excep)
 	);
 
@@ -166,7 +199,9 @@ module core
 		.dataE(dataE_nxt),
 		.branch_enable,
 		.branch_target,
-		.priviledgeMode
+		.priviledgeMode,
+		.mem_misaligned,
+		.mem_mcause
 	);
 
 	u1 flushM;
