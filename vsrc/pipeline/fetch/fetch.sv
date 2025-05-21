@@ -22,7 +22,8 @@ module fetch
 	input word_t mem_mcause,
     input u2 priviledgeMode,
     input u1 interrupted,
-    input word_t interrupt_mcause
+    input word_t interrupt_mcause,
+    input u1 data_ok
 );
 
     creg_addr_t ra1, ra2, rdst;
@@ -46,7 +47,8 @@ module fetch
         .mem_mcause,
         .priviledgeMode,
         .interrupted,
-        .interrupt_mcause
+        .interrupt_mcause,
+        .data_ok
     );
     assign dataF.valid = '1;
     assign dataF.raw_instr = ~stall ? raw_instr : 0;
@@ -57,7 +59,7 @@ module fetch
     assign dataF.dst = rdst;
     assign dataF.imm = imm;
     assign dataF.csraddr = csraddr;
-    assign dataF.excep = excep;
+    assign dataF.excep = ~stall ? excep : 0;
     assign dataF.priviledgeMode = priviledgeMode;
 
 endmodule

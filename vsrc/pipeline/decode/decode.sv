@@ -25,7 +25,8 @@ module decode
     output u64 REG[31:0],
     output csr_t CSR,
     input u1 stall,
-    input excep_data_t excep_wdata
+    input excep_data_t excep_wdata,
+	input word_t extra_mip
 );
 
     word_t rd1, rd2;
@@ -52,7 +53,8 @@ module decode
         .excep_wdata,
         .excep_readstatus(dataF.ctl.exception || dataF.ctl.mret),
         .excep_mstatus(dataD.extramstatus),
-        .CSR
+        .CSR,
+        .extra_mip
 	);
 
     assign dataD.valid = '1;
@@ -64,7 +66,7 @@ module decode
     assign dataD.dst = dataF.dst;
     assign dataD.imm = dataF.imm;
     assign dataD.csraddr = dataF.csraddr;
-    assign dataD.excep = dataF.excep;
+    assign dataD.excep = ~stall ? dataF.excep : 0;
     assign dataD.priviledgeMode = dataF.priviledgeMode;
     assign dataD.srca = rd1;
     assign dataD.srcb = rd2;

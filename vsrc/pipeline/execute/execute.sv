@@ -163,12 +163,14 @@ module execute
             dataE.excep.mstatus.mie = dataD.extramstatus.mpie; // copy mpie
             dataE.excep.mstatus.sie = dataD.extramstatus.sie;
             dataE.excep.mstatus.uie = dataD.extramstatus.uie;
-            dataE.priviledgeMode_new = '0;
+            dataE.priviledgeMode_new = dataD.extramstatus.mpp;
         end
     end
 
 
     always_comb begin
+        mem_misaligned = '0;
+        mem_mcause = '0;
         if(dataD.ctl.memread || dataD.ctl.memwrite) begin
             case (dataD.ctl.memsize)
                 MSIZE1: mem_misaligned = 1'b0;  // 字节访问总是对齐的

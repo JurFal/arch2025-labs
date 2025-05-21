@@ -37,28 +37,39 @@ module core
 	u1 stallmem, stallmem_d;
 	u1 branch_enable, branch_enable_d;
 	u1 forceflush;
+	u3 interrupts, interrupts_d;
+	u1 receive_interrupt, receive_interrupt_d, receive_interrupt_can_recover;
 
 	assign satp = CSR.satp;
+	assign interrupts = {trint, swint, exint};
 
 	assign stallpc = ireq.valid & ~iresp.data_ok;
 	assign stalllu = (dataD.ctl.memread | dataD.ctl.csrsrc) & (dataF.ra1 == dataD.dst | dataF.ra2 == dataD.dst) & (!branch_enable_d);
 
+
 	u1 interrupted;
 	word_t interrupt_mcause;
+	word_t extra_mip;
+	u1 new_interrupt;
 	always_comb begin
 		interrupted = '0;
 		interrupt_mcause = '0;
+		extra_mip = '0;
+		new_interrupt = interrupts > interrupts_d;
+		if(trint) extra_mip[7] = 1'b1;
+		if(swint) extra_mip[3] = 1'b1;
+		if(exint) extra_mip[11] = 1'b1;
 		if(CSR.mstatus.mie == 1 || priviledgeMode != 2'b11) begin
-			if(1) begin
-				if(trint && CSR.mip[7] && CSR.mie[7]) begin
+			if((new_interrupt || receive_interrupt) && iresp.data_ok) begin
+				if(trint && CSR.mie[7]) begin
 					interrupted = 1'b1;
 					interrupt_mcause = {1'b1, 63'd7};
 				end 
-				else if(swint && CSR.mip[3] && CSR.mie[3]) begin
+				else if(swint && CSR.mie[3]) begin
 					interrupted = 1'b1;
 					interrupt_mcause = {1'b1, 63'd3};
 				end
-				else if(exint && CSR.mip[11] && CSR.mie[11]) begin
+				else if(exint && CSR.mie[11]) begin
 					interrupted = 1'b1;
 					interrupt_mcause = {1'b1, 63'd11};
 				end
@@ -66,6 +77,13 @@ module core
 		end
 	end
 
+	always_ff @(posedge clk) begin
+		if(reset) begin
+			interrupts_d <= '0;
+		end else begin
+			interrupts_d <= interrupts;
+		end
+	end
 	always_ff @(posedge clk) begin
 		if(reset) begin
 			stallmem_d <= '0;
@@ -98,6 +116,26 @@ module core
 			pc <= pc;
 		end
 	end
+	
+	always_ff @(posedge clk) begin
+		if(reset) begin
+			receive_interrupt <= '0;
+		end else if(dataF_nxt.excep.mcause[63]) begin
+			receive_interrupt <= '0;
+		end else if(new_interrupt || (stalllu && receive_interrupt_can_recover)) begin 
+			receive_interrupt <= 1'b1;
+			receive_interrupt_can_recover <= '0;
+		end
+	end
+	always_ff @(posedge clk) begin
+		if(reset) begin
+			receive_interrupt_can_recover <= '0;
+		end else if(dataF_nxt.excep.mcause[63]) begin
+			receive_interrupt_can_recover <= 1'b1;
+		end else if(dataD_nxt.excep.mcause[63]) begin
+			receive_interrupt_can_recover <= '0;
+		end
+	end
 
 	u1 pc_misaligned, mem_misaligned;
 	word_t mem_mcause;
@@ -128,13 +166,14 @@ module core
 		.dataF(dataF_nxt),
 		.raw_instr,
 		.pc,
-		.stall(branch_enable_d | mem_misaligned),
+		.stall(branch_enable_d),
 		.pc_misaligned,
 		.mem_misaligned,
 		.mem_mcause,
 		.priviledgeMode,
 		.interrupted,
-		.interrupt_mcause
+		.interrupt_mcause,
+		.data_ok(iresp.data_ok)
 	);
 	
 	muxword pcselect (
@@ -164,13 +203,14 @@ module core
 		.wa(dataW_nxt.dst),
 		.wen(dataW_nxt.ctl.regwrite),
 		.wd(dataW_nxt.writedata),
-		.csr_wa(dataW_nxt.csraddr),
-		.csr_wen(dataW_nxt.ctl.csrsrc && !(dataW_nxt.ctl.exception | dataW_nxt.ctl.mret)),
-		.csr_wd(dataW_nxt.csrdata),
+		.csr_wa(dataM_nxt.csraddr),
+		.csr_wen(dataM_nxt.ctl.csrsrc && !(dataM_nxt.ctl.exception | dataM_nxt.ctl.mret)),
+		.csr_wd(dataM_nxt.csrdata),
 		.REG,
 		.CSR,
 		.stall(stalllu | branch_enable_d | mem_misaligned),
-		.excep_wdata(dataW_nxt.excep)
+		.excep_wdata(dataW_nxt.excep),
+		.extra_mip
 	);
 
 	u1 flushE;
@@ -179,7 +219,10 @@ module core
 
 	always_ff @(posedge clk) begin
 		if (reset) begin dataE <= '0; priviledgeMode <= 2'b11; end
-		else if (flushE) begin dataE <= dataE_nxt; priviledgeMode <= dataE_nxt.priviledgeMode_new; end
+		else if (flushE) begin 
+			dataE <= dataE_nxt; 
+			if(dataE_nxt.raw_instr != '0) priviledgeMode <= dataE_nxt.priviledgeMode_new; 
+		end
 	end
 
 	fwd_data_t fwd_srca, fwd_srcb;

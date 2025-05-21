@@ -24,7 +24,8 @@ module decoder
     input word_t mem_mcause,
     input u2 priviledgeMode,
     input u1 interrupted,
-    input word_t interrupt_mcause
+    input word_t interrupt_mcause,
+    input u1 data_ok
 );
 
     wire [6:0] op = raw_instr[6:0];
@@ -68,7 +69,7 @@ module decoder
             csraddr = CSR_MTVEC;
             ctl.op = UNKNOWN;
         end
-        else
+        else if(data_ok)
             unique case (op)
                 OP_R_OPS: begin
                     ctl.regwrite = 1'b1;
@@ -443,7 +444,8 @@ module decoder
                     ra1 = raw_instr[19:15];
                     rdst = raw_instr[11:7];
                     imm = {{52{raw_instr[31]}}, raw_instr[31:20]};
-                    unique case (f3)
+                    ctl.op = JALR;
+                    /*unique case (f3)
                         F3_JL_JLR: begin
                             ctl.op = JALR;
                         end
@@ -457,7 +459,7 @@ module decoder
                             csraddr = CSR_MTVEC;
                             ctl.op = UNKNOWN;
                         end
-                    endcase
+                    endcase*/
                 end
                 OP_I_CSR: begin
                     ctl.regwrite = 1'b1;

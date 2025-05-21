@@ -20,7 +20,8 @@ module csrfile
 	input excep_data_t excep_wdata,
 	input u1 excep_readstatus,
 	output mstatus_t excep_mstatus,
-	output csr_t CSR
+	output csr_t CSR,
+	input word_t extra_mip
 );
 
 csr_t next_csr;
@@ -58,6 +59,7 @@ always_comb begin
 	next_csr = CSR;
 	next_csr.mcycle = CSR.mcycle + 1;
 	excep_mstatus = excep_readstatus ? CSR.mstatus : '0;
+	next_csr.mip = CSR.mip | extra_mip;
 	if(excep_wdata.enable) begin
 		next_csr.mstatus = excep_wdata.mstatus;
 		if(!excep_wdata.mret) begin
@@ -69,7 +71,7 @@ always_comb begin
 		case(csr_wa)
 			//CSR_MHARTID: next_csr.mhartid = csr_wd;
 			CSR_MIE: next_csr.mie = csr_wd;
-			CSR_MIP: next_csr.mip = csr_wd & MIP_MASK;
+			CSR_MIP: next_csr.mip = (csr_wd & MIP_MASK) | extra_mip;
 			CSR_MTVEC: next_csr.mtvec = csr_wd & MTVEC_MASK;
 			CSR_MSTATUS: next_csr.mstatus = csr_wd & MSTATUS_MASK;
 			CSR_MSCRATCH: next_csr.mscratch = csr_wd;
