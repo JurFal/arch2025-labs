@@ -51,11 +51,12 @@ module core
 	word_t interrupt_mcause;
 	word_t extra_mip;
 	u1 new_interrupt;
+	u1 interrupt_csr_eval;
 	always_comb begin
 		interrupted = '0;
 		interrupt_mcause = '0;
 		extra_mip = '0;
-		new_interrupt = interrupts > interrupts_d;
+		new_interrupt = interrupts > interrupts_d || interrupt_csr_eval || dataE_nxt.ctl.mret;
 		if(trint) extra_mip[7] = 1'b1;
 		if(swint) extra_mip[3] = 1'b1;
 		if(exint) extra_mip[11] = 1'b1;
@@ -210,7 +211,8 @@ module core
 		.CSR,
 		.stall(stalllu | branch_enable_d | mem_misaligned),
 		.excep_wdata(dataW_nxt.excep),
-		.extra_mip
+		.extra_mip,
+		.interrupt_csr_eval
 	);
 
 	u1 flushE;

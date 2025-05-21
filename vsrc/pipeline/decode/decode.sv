@@ -26,7 +26,8 @@ module decode
     output csr_t CSR,
     input u1 stall,
     input excep_data_t excep_wdata,
-	input word_t extra_mip
+	input word_t extra_mip,
+	output u1 interrupt_csr_eval
 );
 
     word_t rd1, rd2;
@@ -57,6 +58,7 @@ module decode
         .extra_mip
 	);
 
+	assign interrupt_csr_eval = (csr_wa == CSR_MIP || csr_wa == CSR_MIE || csr_wa == CSR_MSTATUS) && csr_wen;
     assign dataD.valid = '1;
     assign dataD.pc = dataF.pc;
     assign dataD.raw_instr = ~stall ? dataF.raw_instr : '0;
