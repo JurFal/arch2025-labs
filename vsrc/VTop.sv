@@ -28,12 +28,11 @@ module VTop
     cbus_resp_t icresp, dcresp;
     u2 priviledgeMode;
     satp_t satp;
+    word_t pmpaddr0, pmpcfg0;
 
     core core(.*);
     IBusToCBus icvt(.*);
-
     DBusToCBus dcvt(.*);
-
 
     CBusArbiter mux(
         .ireqs({icreq, dcreq}),

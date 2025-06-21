@@ -34,10 +34,11 @@ module SimTop
     cbus_resp_t icresp, dcresp;
     u2 priviledgeMode;
     satp_t satp;
+    word_t pmpaddr0, pmpcfg0;
 
     core core(
       .clk(clock), .reset, .ireq, .iresp, .dreq, .dresp, .trint, .swint, .exint,
-      .priviledgeMode, .satp
+      .priviledgeMode, .satp, .pmpaddr0, .pmpcfg0
     );
 
     IBusToCBus icvt(.*);

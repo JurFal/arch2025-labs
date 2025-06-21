@@ -24,7 +24,8 @@ module core
 	input  dbus_resp_t dresp,
 	input logic trint, swint, exint,
 	output u2 priviledgeMode,
-	output satp_t satp
+	output satp_t satp,
+	output word_t pmpaddr0, pmpcfg0
 );
 	/* TODO: Add your pipeline here. */	
 	word_t pc, pc_nxt, branch_target, branch_target_d;
@@ -41,6 +42,8 @@ module core
 	u1 receive_interrupt, receive_interrupt_d, receive_interrupt_can_recover;
 
 	assign satp = CSR.satp;
+	assign pmpaddr0 = CSR.pmpaddr;
+	assign pmpcfg0 = CSR.pmpcfg;
 	assign interrupts = {trint, swint, exint};
 
 	assign stallpc = ireq.valid & ~iresp.data_ok;

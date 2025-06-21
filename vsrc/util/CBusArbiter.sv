@@ -5,6 +5,7 @@
 `include "include/common.sv"
 `include "include/pipes.sv"
 `include "util/MMU.sv"
+`include "util/PMP.sv"
 `else
 
 `endif
@@ -27,14 +28,16 @@ module CBusArbiter
     output cbus_req_t  oreq,
     input  cbus_resp_t oresp,
     input u2 priviledgeMode,
-    input satp_t satp
+    input satp_t satp,
+    input word_t pmpaddr0,
+    input word_t pmpcfg0
 
 );
     logic busy;
     int index, select;
     cbus_req_t saved_req, selected_req;
-    cbus_req_t mmu_req;
-    cbus_resp_t selected_resp;
+    cbus_req_t mmu_req, pmp_req;
+    cbus_resp_t selected_resp, mmu_resp;
 
     MMU mmu_inst(
         .clk,
@@ -42,9 +45,21 @@ module CBusArbiter
         .request_valid(busy),
         .ireq(ireqs[index]),
         .iresp(selected_resp),
+        .oreq(pmp_req),
+        .oresp(mmu_resp),
+        .satp,
+        .priviledgeMode
+    );
+    
+    PMP pmp_inst(
+        .clk,
+        .reset,
+        .ireq(pmp_req),
+        .iresp(mmu_resp),
         .oreq,
         .oresp,
-        .satp,
+        .pmpaddr0,
+        .pmpcfg0,
         .priviledgeMode
     );
 

@@ -39,8 +39,8 @@ always_comb begin
 		CSR_MCAUSE: begin csr_out = CSR.mcause; end
 		CSR_MCYCLE: begin csr_out = CSR.mcycle; end
 		CSR_MTVAL: begin csr_out = CSR.mtval; end
-		//CSR_PMPADDR0: begin csr_out = CSR.pmpaddr; end
-		//CSR_PMPCFG0: begin csr_out = CSR.pmpcfg; end
+		CSR_PMPADDR0: begin csr_out = CSR.pmpaddr; end
+		CSR_PMPCFG0: begin csr_out = CSR.pmpcfg; end
 		//CSR_MEDELEG: begin csr_out = CSR.medeleg; end
 		//CSR_MIDELEG: begin csr_out = CSR.mideleg; end
 		//CSR_STVEC: begin csr_out = CSR.stvec; end
@@ -80,8 +80,8 @@ always_comb begin
 			CSR_MCAUSE: next_csr.mcause = csr_wd;
 			CSR_MCYCLE: next_csr.mcycle = csr_wd;
 			CSR_MTVAL: next_csr.mtval = csr_wd;
-			//CSR_PMPADDR0: next_csr.pmpaddr = csr_wd;
-			//CSR_PMPCFG0: next_csr.pmpcfg = csr_wd;
+			CSR_PMPADDR0: next_csr.pmpaddr = csr_wd;
+			CSR_PMPCFG0: next_csr.pmpcfg = csr_wd;
 			//CSR_MEDELEG: next_csr.medeleg = csr_wd & MEDELEG_MASK;
 			//CSR_MIDELEG: next_csr.mideleg = csr_wd & MIDELEG_MASK;
 			//CSR_STVEC: next_csr.stvec = csr_wd;
