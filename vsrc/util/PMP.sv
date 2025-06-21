@@ -41,12 +41,16 @@ module PMP
     logic pmp_match;
     logic pmp_permission_ok;
     logic pmp_violation;
+    logic [63:0] mask;
+    logic [5:0] size_bits;
     
     // Address matching logic
     always_comb begin
         pmp_base_addr = '0;
         pmp_top_addr = '0;
         pmp_match = 1'b0;
+        mask = '0;
+        size_bits = '0;
         
         case (pmp_a)
             2'b00: begin // OFF - PMP entry is disabled
@@ -65,8 +69,6 @@ module PMP
             end
             2'b11: begin // NAPOT (Naturally aligned power-of-two region)
                 // Find the size by counting trailing 1s in pmpaddr0
-                logic [63:0] mask;
-                logic [5:0] size_bits;
                 
                 // Simple NAPOT implementation for common sizes
                 if (pmpaddr0[0] == 1'b0) begin
