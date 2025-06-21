@@ -59,16 +59,17 @@ parameter OP_J_JAL = 7'b1101111; // J-Type, jump and link
 parameter OP_S_SIM = 7'b0100011; // S-Type, store immediate
 parameter OP_U_LUI = 7'b0110111; // U-Type, load upper immediate
 parameter OP_U_APC = 7'b0010111; // U-Type, add upper immediate to pc
+parameter OP_R_ATM = 7'b0101111; // R-Type, atomics
 
 // operation F3
-parameter F3_OP_ADD = 3'b000; // add and sub
+parameter F3_OP_ADD = 3'b000; // add and sub, multiply
 parameter F3_OP_SLE = 3'b001; // shift left
 parameter F3_OP_SLT = 3'b010; // set if less than
 parameter F3_OP_SLU = 3'b011; // set if less than unsigned
-parameter F3_OP_XOR = 3'b100; // xor
-parameter F3_OP_SRG = 3'b101; // shift right
-parameter F3_OP_ORR = 3'b110; // or
-parameter F3_OP_AND = 3'b111; // and
+parameter F3_OP_XOR = 3'b100; // xor, division
+parameter F3_OP_SRG = 3'b101; // shift right, unsigned division
+parameter F3_OP_ORR = 3'b110; // or, remainder
+parameter F3_OP_AND = 3'b111; // and, unsigned remainder
 
 // memory F3
 parameter F3_MM_QWS = 3'b000; // signed byte (quarter word)
@@ -117,7 +118,10 @@ typedef enum logic [5:0] {
 	LUI, AUIPC,
 	BEQ, BNE, BLT, BLTU, BGE, BGEU,
 	JAL, JALR,
-	MRET, ECALL
+	MRET, ECALL,
+	MUL, MULW,
+	DIV, DIVW, DIVU, DIVUW,
+	REM, REMW, REMU, REMUW
 } opcode_t; 
 
 typedef enum logic [4:0] {
@@ -126,7 +130,10 @@ typedef enum logic [4:0] {
 	ALU_SLT, ALU_SLTU,
 	ALU_SLL, ALU_SLLW,
 	ALU_SRL, ALU_SRLW,
-	ALU_SRA, ALU_SRAW
+	ALU_SRA, ALU_SRAW,
+	ALU_MUL, ALU_MULW,
+    ALU_DIV, ALU_DIVU, ALU_DIVW, ALU_DIVUW,
+    ALU_REM, ALU_REMU, ALU_REMW, ALU_REMUW
 } alufunc_t;
 
 typedef enum logic [3:0] {

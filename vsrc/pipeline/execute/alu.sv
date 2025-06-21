@@ -4,6 +4,7 @@
 `ifdef VERILATOR
 `include "include/common.sv"
 `include "include/pipes.sv"
+`include "pipeline/execute/mul_div_unit.sv"
 `else
 
 `endif
@@ -15,6 +16,16 @@ module alu
     output word_t aluout,
     input word_t src1, src2
 );
+
+    word_t mul_div_result;
+
+    mul_div_unit mul_div_inst (
+        .alufunc(alufunc),
+        .src1(src1),
+        .src2(src2),
+        .result(mul_div_result)
+    );
+
     always_comb begin
         case(alufunc)
             ALU_SRC1: aluout = src1;
@@ -35,6 +46,9 @@ module alu
             ALU_SRAW: aluout = {32'b0, $signed(src1[31:0]) >>> src2[4:0]};
             ALU_SLT: aluout = ($signed(src1) < $signed(src2)) ? 1 : 0;
             ALU_SLTU: aluout = ($unsigned(src1) < $unsigned(src2)) ? 1 : 0;
+	        ALU_MUL, ALU_MULW,
+            ALU_DIV, ALU_DIVU, ALU_DIVW, ALU_DIVUW,
+            ALU_REM, ALU_REMU, ALU_REMW, ALU_REMUW: aluout = mul_div_result;
             default: aluout = '0;
         endcase
     end

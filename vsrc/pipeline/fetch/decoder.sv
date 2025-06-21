@@ -77,54 +77,80 @@ module decoder
                     ra1 = raw_instr[19:15];
                     ra2 = raw_instr[24:20];
                     rdst = raw_instr[11:7];
-                    unique case (f3)
-                        F3_OP_ADD: begin
-                            if (f7 == 7'b0000000) begin
+                    if (f7 == 7'b0000000) 
+                        unique case (f3)
+                            F3_OP_ADD: begin
                                 ctl.op = ADD;
                                 ctl.alufunc = ALU_ADD;
                             end
-                            else if (f7 == 7'b0100000) begin
+                            F3_OP_SLE: begin
+                                ctl.op = SLL;
+                                ctl.alufunc = ALU_SLL;
+                            end
+                            F3_OP_SLT: begin
+                                ctl.op = SLT;
+                                ctl.alufunc = ALU_SLT;
+                            end
+                            F3_OP_SLU: begin
+                                ctl.op = SLTU;
+                                ctl.alufunc = ALU_SLTU;
+                            end
+                            F3_OP_XOR: begin
+                                ctl.op = XOR;
+                                ctl.alufunc = ALU_XOR;
+                            end
+                            F3_OP_SRG: begin
+                                if (f7 == 7'b0000000) begin
+                                    ctl.op = SRL;
+                                    ctl.alufunc = ALU_SRL;
+                                end
+                                else if (f7 == 7'b0100000) begin
+                                    ctl.op = SRA;
+                                    ctl.alufunc = ALU_SRA;
+                                end
+                                else begin
+                                    ctl = '0;
+                                    ctl.csrsrc = 1'b1;
+                                    ctl.exception = 1'b1;
+                                    excep.enable = 1'b1;
+                                    excep.mepc = pc;
+                                    excep.mcause = 64'd2;
+                                    csraddr = CSR_MTVEC;
+                                    ctl.op = UNKNOWN;
+                                    ctl.alufunc = ALU_ADD;
+                                end
+                            end
+                            F3_OP_ORR: begin
+                                ctl.op = OR;
+                                ctl.alufunc = ALU_OR;
+                            end
+                            F3_OP_AND: begin
+                                ctl.op = AND;
+                                ctl.alufunc = ALU_AND;
+                            end
+                            default: begin
+                                ctl = '0;
+                                ctl.csrsrc = 1'b1;
+                                ctl.exception = 1'b1;
+                                excep.enable = 1'b1;
+                                excep.mepc = pc;
+                                excep.mcause = 64'd2;
+                                csraddr = CSR_MTVEC;
+                                ctl.op = UNKNOWN;
+                                ctl.alufunc = ALU_ADD;
+                            end
+                        endcase
+                    else if (f7 == 7'b0100000) begin
+                        unique case (f3)
+                            F3_OP_ADD: begin
                                 ctl.op = SUB;
                                 ctl.alufunc = ALU_SUB;
                             end
-                            else begin
-                                ctl = '0;
-                                ctl.csrsrc = 1'b1;
-                                ctl.exception = 1'b1;
-                                excep.enable = 1'b1;
-                                excep.mepc = pc;
-                                excep.mcause = 64'd2;
-                                csraddr = CSR_MTVEC;
-                                ctl.op = UNKNOWN;
-                                ctl.alufunc = ALU_ADD;
-                            end
-                        end
-                        F3_OP_SLE: begin
-                            ctl.op = SLL;
-                            ctl.alufunc = ALU_SLL;
-                        end
-                        F3_OP_SLT: begin
-                            ctl.op = SLT;
-                            ctl.alufunc = ALU_SLT;
-                        end
-                        F3_OP_SLU: begin
-                            ctl.op = SLTU;
-                            ctl.alufunc = ALU_SLTU;
-                        end
-                        F3_OP_XOR: begin
-                            ctl.op = XOR;
-                            ctl.alufunc = ALU_XOR;
-                        end
-                        F3_OP_SRG: begin
-                            if (f7 == 7'b0000000) begin
-                                ctl.op = SRL;
-                                ctl.alufunc = ALU_SRL;
-                            end
-                            else if (f7 == 7'b0100000) begin
+                            F3_OP_SRG: begin
                                 ctl.op = SRA;
                                 ctl.alufunc = ALU_SRA;
                             end
-                            else begin
+                            default: begin
                                 ctl = '0;
                                 ctl.csrsrc = 1'b1;
                                 ctl.exception = 1'b1;
@@ -135,27 +161,54 @@ module decoder
                                 ctl.op = UNKNOWN;
                                 ctl.alufunc = ALU_ADD;
                             end
-                        end
-                        F3_OP_ORR: begin
-                            ctl.op = OR;
-                            ctl.alufunc = ALU_OR;
-                        end
-                        F3_OP_AND: begin
-                            ctl.op = AND;
-                            ctl.alufunc = ALU_AND;
-                        end
-                        default: begin
-                            ctl = '0;
-                            ctl.csrsrc = 1'b1;
-                            ctl.exception = 1'b1;
-                            excep.enable = 1'b1;
-                            excep.mepc = pc;
-                            excep.mcause = 64'd2;
-                            csraddr = CSR_MTVEC;
-                            ctl.op = UNKNOWN;
-                            ctl.alufunc = ALU_ADD;
-                        end
-                    endcase
+                        endcase
+                    end
+                    else if (f7 == 7'b0000001) begin
+                        unique case (f3)
+                            F3_OP_ADD: begin
+                                ctl.op = MUL;
+                                ctl.alufunc = ALU_MUL;
+                            end
+                            F3_OP_XOR: begin
+                                ctl.op = DIV;
+                                ctl.alufunc = ALU_DIV;
+                            end
+                            F3_OP_SRG: begin
+                                ctl.op = DIVU;
+                                ctl.alufunc = ALU_DIVU;
+                            end
+                            F3_OP_ORR: begin
+                                ctl.op = REM;
+                                ctl.alufunc = ALU_REM;
+                            end
+                            F3_OP_AND: begin
+                                ctl.op = REMU;
+                                ctl.alufunc = ALU_REMU;
+                            end
+                            default: begin
+                                ctl = '0;
+                                ctl.csrsrc = 1'b1;
+                                ctl.exception = 1'b1;
+                                excep.enable = 1'b1;
+                                excep.mepc = pc;
+                                excep.mcause = 64'd2;
+                                csraddr = CSR_MTVEC;
+                                ctl.op = UNKNOWN;
+                                ctl.alufunc = ALU_ADD;
+                            end
+                        endcase
+                    end
+                    else begin
+                        ctl = '0;
+                        ctl.csrsrc = 1'b1;
+                        ctl.exception = 1'b1;
+                        excep.enable = 1'b1;
+                        excep.mepc = pc;
+                        excep.mcause = 64'd2;
+                        csraddr = CSR_MTVEC;
+                        ctl.op = UNKNOWN;
+                        ctl.alufunc = ALU_ADD;
+                    end
                 end
                 OP_R_OPW: begin
                     ctl.regwrite = 1'b1;
@@ -164,42 +217,44 @@ module decoder
                     ra1 = raw_instr[19:15];
                     ra2 = raw_instr[24:20];
                     rdst = raw_instr[11:7];
-                    unique case (f3)
-                        F3_OP_ADD: begin
-                            if (f7 == 7'b0000000) begin
+                    if (f7 == 7'b0000000) begin
+                        unique case (f3)
+                            F3_OP_ADD: begin
                                 ctl.op = ADDW;
                                 ctl.alufunc = ALU_ADD;
                             end
-                            else if (f7 == 7'b0100000) begin
-                                ctl.op = SUBW;
-                                ctl.alufunc = ALU_SUB;
+                            F3_OP_SLE: begin
+                                ctl.op = SLLW;
+                                ctl.alufunc = ALU_SLLW;
                             end
-                            else begin
-                                ctl = '0;
-                                ctl.csrsrc = 1'b1;
-                                ctl.exception = 1'b1;
-                                excep.enable = 1'b1;
-                                excep.mepc = pc;
-                                excep.mcause = 64'd2;
-                                csraddr = CSR_MTVEC;
-                                ctl.op = UNKNOWN;
-                                ctl.alufunc = ALU_ADD;
-                            end
-                        end
-                        F3_OP_SLE: begin
-                            ctl.op = SLLW;
-                            ctl.alufunc = ALU_SLLW;
-                        end
-                        F3_OP_SRG: begin
-                            if (f7 == 7'b0000000) begin
+                            F3_OP_SRG: begin
                                 ctl.op = SRLW;
                                 ctl.alufunc = ALU_SRLW;
                             end
-                            else if (f7 == 7'b0100000) begin
+                            default: begin
+                                ctl = '0;
+                                ctl.csrsrc = 1'b1;
+                                ctl.exception = 1'b1;
+                                excep.enable = 1'b1;
+                                excep.mepc = pc;
+                                excep.mcause = 64'd2;
+                                csraddr = CSR_MTVEC;
+                                ctl.op = UNKNOWN;
+                                ctl.alufunc = ALU_ADD;
+                            end 
+                        endcase
+                    end
+                    else if (f7 == 7'b0100000) begin
+                        unique case (f3)
+                            F3_OP_ADD: begin
+                                ctl.op = SUBW;
+                                ctl.alufunc = ALU_SUB;
+                            end
+                            F3_OP_SRG: begin
                                 ctl.op = SRAW;
                                 ctl.alufunc = ALU_SRAW;
                             end
-                            else begin
+                            default: begin
                                 ctl = '0;
                                 ctl.csrsrc = 1'b1;
                                 ctl.exception = 1'b1;
@@ -210,19 +265,54 @@ module decoder
                                 ctl.op = UNKNOWN;
                                 ctl.alufunc = ALU_ADD;
                             end
-                        end
-                        default: begin
-                            ctl = '0;
-                            ctl.csrsrc = 1'b1;
-                            ctl.exception = 1'b1;
-                            excep.enable = 1'b1;
-                            excep.mepc = pc;
-                            excep.mcause = 64'd2;
-                            csraddr = CSR_MTVEC;
-                            ctl.op = UNKNOWN;
-                            ctl.alufunc = ALU_ADD;
-                        end
-                    endcase
+                        endcase
+                    end
+                    else if (f7 == 7'b0000001) begin
+                        unique case (f3)
+                            F3_OP_ADD: begin
+                                ctl.op = MULW;
+                                ctl.alufunc = ALU_MULW;
+                            end
+                            F3_OP_XOR: begin
+                                ctl.op = DIVW;
+                                ctl.alufunc = ALU_DIVW;
+                            end
+                            F3_OP_SRG: begin
+                                ctl.op = DIVUW;
+                                ctl.alufunc = ALU_DIVUW;
+                            end
+                            F3_OP_ORR: begin
+                                ctl.op = REMW;
+                                ctl.alufunc = ALU_REMW;
+                            end
+                            F3_OP_AND: begin
+                                ctl.op = REMUW;
+                                ctl.alufunc = ALU_REMUW;
+                            end
+                            default: begin
+                                ctl = '0;
+                                ctl.csrsrc = 1'b1;
+                                ctl.exception = 1'b1;
+                                excep.enable = 1'b1;
+                                excep.mepc = pc;
+                                excep.mcause = 64'd2;
+                                csraddr = CSR_MTVEC;
+                                ctl.op = UNKNOWN;
+                                ctl.alufunc = ALU_ADD;
+                            end
+                        endcase
+                    end
+                    else begin
+                        ctl = '0;
+                        ctl.csrsrc = 1'b1;
+                        ctl.exception = 1'b1;
+                        excep.enable = 1'b1;
+                        excep.mepc = pc;
+                        excep.mcause = 64'd2;
+                        csraddr = CSR_MTVEC;
+                        ctl.op = UNKNOWN;
+                        ctl.alufunc = ALU_ADD;
+                    end
                 end
                 OP_I_OPS: begin
                     ctl.regwrite = 1'b1;
